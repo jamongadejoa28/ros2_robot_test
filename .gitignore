@@ -1,0 +1,59 @@
+# ROS 2 Build & Workspaces
+build/
+install/
+log/
+
+# Raspberry Pi / OS System Garbage
+Desktop/
+Documents/
+Downloads/
+Music/
+Pictures/
+Public/
+Templates/
+Videos/
+snap/
+
+# System Context & Dotfiles
+.Xauthority
+.bash_history
+.bash_logout
+.bashrc
+.profile
+.sudo_as_admin_successful
+.lesshst
+.wget-hsts
+.lgd-nfy0
+.python_history
+
+# Cache & Local Configs
+.cache/
+.config/
+.local/
+.ros/
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+.ipython/
+.jupyter/
+
+# Environments 
+.envrc
+.env
+
+# Python Caches
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Edtior & IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Others
+base_footprint
+*.log
+*.tmp
