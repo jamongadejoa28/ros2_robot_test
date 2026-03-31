@@ -109,6 +109,8 @@ void RobotApp::Stop() {
   if (conn_mgr_) conn_mgr_->Stop();
 
   if (lidar_) lidar_->StopScan();
+  if (motor_) motor_->SetVelocityWait(0.0, 0.0);
+  if (led_) led_->Clear();
 
   if (motor_thread_.joinable()) motor_thread_.join();
   if (imu_thread_.joinable()) imu_thread_.join();

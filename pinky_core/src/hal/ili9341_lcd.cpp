@@ -17,8 +17,12 @@ Ili9341Lcd::Ili9341Lcd(const Config& config) : config_(config) {
 
 Ili9341Lcd::~Ili9341Lcd() {
   if (spi_fd_ != -1) {
-    // wiringPiSPI does not have explicit close, standard close works
+    // Display OFF command
+    SpiWriteCommand(0x28);
+    // Backlight OFF
+    digitalWrite(config_.bl_pin, LOW);
     close(spi_fd_);
+    spi_fd_ = -1;
   }
 }
 
@@ -58,8 +62,8 @@ bool Ili9341Lcd::Init() {
   SpiWriteCommand(0x3A); // Pixel Format Set
   SpiWriteData(0x55);    // 16-bit RGB 5-6-5 format
 
-  SpiWriteCommand(0x36); // Memory Access Control
-  SpiWriteData(0x28);    // Landscape
+  SpiWriteCommand(0x36); // Memory Access Control (MADCTL)
+  SpiWriteData(0xE8);    // Landscape 180° (MY=1, MX=1, MV=1, BGR=1)
 
   SpiWriteCommand(0x29); // Display ON
   // For actual ILI9341 there are more gamma/power settings, 
