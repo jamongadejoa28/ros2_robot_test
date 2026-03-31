@@ -57,3 +57,7 @@ snap/
 base_footprint
 *.log
 *.tmp
+
+.agents/*
+.claude/*
+.gemini/*

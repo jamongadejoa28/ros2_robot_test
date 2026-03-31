@@ -7,6 +7,7 @@
 
 #include "wiringPiI2C.h"
 
+
 namespace pinky {
 
 using namespace std::chrono_literals;
@@ -68,19 +69,7 @@ bool Bno055Imu::ReadData(ImuData& data) {
 
   uint8_t buffer[32] = {0};
   
-	// Some versions of wiringPi might not have readBlockData. 
-	// As a typical workaround (since i2c block read can be tricky), we invoke it.
-  // Assumes wiringPiI2CReadBlockData works or replaced with standard i2c read.
-  // (In the original code wiringPiI2CReadBlockData is used)
-  
-  // NOTE: wiringPiI2CReadBlockData signature might be different, normally we read chunks.
-  // We'll trust the original wiringPi build has it.
-  
-  // Actually, standard wiringPiI2C doesn't have ReadBlockData for more than 32 bytes or behaves weirdly.
-  // We will assume the custom wiringPi provided does support it, as seen in pinky_imu_bno055.
-  extern int wiringPiI2CReadBlockData(int fd, int reg, uint8_t* buffer, int len);
-  
-  int res = wiringPiI2CReadBlockData(fd_, 0x08, buffer, 32);
+  int res = wiringPiI2CReadBlockData(fd_, 0x08, buffer, static_cast<uint8_t>(32));
   if (res < 0) return false;
 
   data.stamp = Timestamp::Now();
