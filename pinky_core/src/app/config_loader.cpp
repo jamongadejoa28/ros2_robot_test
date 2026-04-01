@@ -24,6 +24,10 @@ bool LoadConfig(const std::string& yaml_path, RobotConfig& config) {
   // hal
   if (auto hal = root["hal"]) {
     if (hal["enable"]) config.enable_hal = hal["enable"].as<bool>();
+    if (auto lidar = hal["lidar"]) {
+      if (lidar["device"]) config.lidar_device = lidar["device"].as<std::string>();
+      if (lidar["baudrate"]) config.lidar_baudrate = lidar["baudrate"].as<uint32_t>();
+    }
   }
 
   // robot physics — overrides compiled-in constants when present

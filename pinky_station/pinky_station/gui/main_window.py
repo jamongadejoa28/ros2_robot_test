@@ -42,6 +42,7 @@ class PinkyStationWindow(QMainWindow):
         self.sensor_worker = None
         self.camera_worker = None
         self.command_worker = None
+        self.nav_worker = None
 
         # Central widget and layout
         central = QWidget()
@@ -174,19 +175,19 @@ class PinkyStationWindow(QMainWindow):
             self.nav_worker.start()
 
     def _cleanup_workers(self):
-        if self.nav_worker:
+        if getattr(self, 'nav_worker', None):
             self.nav_worker.stop()
             self.nav_worker.wait()
             self.nav_worker = None
-        if self.sensor_worker:
+        if getattr(self, 'sensor_worker', None):
             self.sensor_worker.stop()
             self.sensor_worker.wait()
             self.sensor_worker = None
-        if self.camera_worker:
+        if getattr(self, 'camera_worker', None):
             self.camera_worker.stop()
             self.camera_worker.wait()
             self.camera_worker = None
-        if self.command_worker:
+        if getattr(self, 'command_worker', None):
             self.command_worker.stop()
             self.command_worker.wait()
             self.command_worker = None

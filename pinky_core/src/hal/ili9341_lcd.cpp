@@ -170,6 +170,8 @@ bool Ili9341Lcd::Init() {
   SpiWriteCommand(0x36); // Memory Access Control (MADCTL)
   SpiWriteData(0x68);    // Landscape: MX=1, MV=1, BGR=1
 
+  SpiWriteCommand(0x21); // Display Invert ON (Fixes white bg / green faces)
+
   SpiWriteCommand(0x29); // Display ON
 
   // Clear to black on startup

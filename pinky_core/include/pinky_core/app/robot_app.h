@@ -16,6 +16,7 @@
 #include "pinky_core/core/battery_monitor.h"
 #include "pinky_core/core/led_controller.h"
 #include "pinky_core/core/lidar_processor.h"
+#include "pinky_core/core/emotion_renderer.h"
 #ifdef PINKY_HAS_ONNXRUNTIME
 #include "pinky_core/inference/onnx_actor.h"
 #endif
@@ -59,6 +60,9 @@ struct RobotConfig {
   uint16_t udp_port{9200};
   bool enable_hal{true};  // False on PC for mock
 
+  std::string lidar_device{"/dev/ttyUSB0"};
+  uint32_t lidar_baudrate{115200};
+
   // Robot physics (overridable via YAML, defaults from constants.h)
   double wheel_radius{kWheelRadius};
   double wheel_base{kWheelBase};
@@ -84,6 +88,7 @@ class RobotApp {
   void AdcLoop();
   void LidarLoop();
   void CameraLoop();
+  void LcdLoop();
   
   // Handlers
   void OnTcpMessage(int fd, const ParsedMessage& msg);
@@ -125,6 +130,9 @@ class RobotApp {
   bool rl_navigation_active_{false};
   NavGoal current_goal_;
   int rl_step_count_{0};
+  
+  // LCD State
+  EmotionId current_emotion_{EmotionId::kNeutral};
 
   // Threads
   std::thread motor_thread_;
@@ -132,6 +140,7 @@ class RobotApp {
   std::thread adc_thread_;
   std::thread lidar_thread_;
   std::thread camera_thread_;
+  std::thread lcd_thread_;
 };
 
 }  // namespace pinky

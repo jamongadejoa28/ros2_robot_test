@@ -33,8 +33,8 @@ endif()
 # yaml-cpp (for config file loading)
 find_package(yaml-cpp QUIET)
 
-# OpenCV (optional, needed for camera frame encoding)
-find_package(OpenCV QUIET COMPONENTS core imgcodecs)
+# OpenCV (optional, needed for camera frame encoding and emotion GIF animation)
+find_package(OpenCV QUIET COMPONENTS core imgcodecs videoio imgproc)
 
 # ONNX Runtime (optional, for inference module)
 find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h

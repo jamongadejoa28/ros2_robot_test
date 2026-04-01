@@ -6,6 +6,10 @@
 #include <iostream>
 #include <vector>
 
+#ifdef PINKY_HAS_OPENCV
+#include <opencv2/opencv.hpp>
+#endif
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
@@ -211,18 +215,108 @@ std::vector<uint8_t> RenderEmotion(EmotionId emotion, int width, int height) {
   return buf;
 }
 
-std::vector<uint8_t> LoadEmotionImage(const std::string& filepath,
-                                      int width, int height) {
-  int buf_size = width * height * 2;
-  std::vector<uint8_t> buf(buf_size, 0);
-  // Fill black background
-  uint16_t bg = Rgb565(0, 0, 0);
-  Fill(buf.data(), width, height, bg);
+AnimatedEmotion LoadAnimatedEmotion(const std::string& filepath, int target_w, int target_h) {
+  AnimatedEmotion result;
+  
+#ifdef PINKY_HAS_OPENCV
+  cv::VideoCapture cap(filepath);
+  if (cap.isOpened()) {
+    cv::Mat frame;
+    double fps = cap.get(cv::CAP_PROP_FPS);
+    int delay_ms = (fps > 0.0 && fps < 100.0) ? static_cast<int>(1000.0 / fps) : 100;
 
-  if (!LoadAndResizeImage(filepath, buf.data(), width, height)) {
-    return {};  // empty = failed
+    while (cap.read(frame)) {
+      if (frame.empty()) break;
+      
+      cv::Mat resized;
+      cv::resize(frame, resized, cv::Size(target_w, target_h), 0, 0, cv::INTER_NEAREST);
+      
+      GifFrame gf;
+      gf.pixels.resize(target_w * target_h * 2, 0);
+      gf.delay_ms = delay_ms;
+      
+      for (int y = 0; y < target_h; ++y) {
+        for (int x = 0; x < target_w; ++x) {
+          cv::Vec3b px = resized.at<cv::Vec3b>(y, x);
+          // OpenCV is BGR: px[0] is B, px[1] is G, px[2] is R
+          uint16_t color = Rgb565(px[2], px[1], px[0]);
+          int out_idx = (y * target_w + x) * 2;
+          std::memcpy(&gf.pixels[out_idx], &color, 2);
+        }
+      }
+      result.frames.push_back(std::move(gf));
+    }
+    if (!result.frames.empty()) {
+      return result;
+    }
   }
-  return buf;
+#endif
+
+  std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+  if (!file.is_open()) return result;
+  
+  std::streamsize size = file.tellg();
+  file.seekg(0, std::ios::beg);
+  std::vector<uint8_t> buffer(size);
+  if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) return result;
+
+  int src_w = 0, src_h = 0, frames = 0, comp = 0;
+  int* delays = nullptr;
+  
+  unsigned char* img = stbi_load_gif_from_memory(buffer.data(), static_cast<int>(size),
+                                                 &delays, &src_w, &src_h, &frames, &comp, 4);
+  
+  // Fallback to static image if it's not an animated GIF
+  if (!img) {
+    img = stbi_load_from_memory(buffer.data(), static_cast<int>(size),
+                                &src_w, &src_h, &comp, 4);
+    if (!img) return result;
+    frames = 1;
+  }
+
+  for (int f = 0; f < frames; ++f) {
+    GifFrame frame;
+    frame.pixels.resize(target_w * target_h * 2, 0);
+    frame.delay_ms = delays ? delays[f] : 100; // Default 100ms if no delay
+    
+    // Scale from STB delay (which is often in ms)
+    if (frame.delay_ms < 20) frame.delay_ms = 100;
+
+    unsigned char* src_frame = img + (f * src_w * src_h * 4);
+
+    // Nearest-neighbor resize with alpha-aware rendering
+    for (int ty = 0; ty < target_h; ++ty) {
+      int sy = ty * src_h / target_h;
+      for (int tx = 0; tx < target_w; ++tx) {
+        int sx = tx * src_w / target_w;
+        int src_idx = (sy * src_w + sx) * 4;
+        uint8_t r = src_frame[src_idx + 0];
+        uint8_t g = src_frame[src_idx + 1];
+        uint8_t b = src_frame[src_idx + 2];
+        uint8_t a = src_frame[src_idx + 3];
+
+        // Skip fully transparent pixels (keep black background)
+        if (a < 32) continue;
+
+        // Alpha-blend against black background
+        if (a < 224) {
+          r = static_cast<uint8_t>(r * a / 255);
+          g = static_cast<uint8_t>(g * a / 255);
+          b = static_cast<uint8_t>(b * a / 255);
+        }
+
+        uint16_t color = Rgb565(r, g, b);
+        int out_idx = (ty * target_w + tx) * 2;
+        std::memcpy(&frame.pixels[out_idx], &color, 2);
+      }
+    }
+    result.frames.push_back(std::move(frame));
+  }
+
+  stbi_image_free(img);
+  if (delays) stbi_image_free(delays);
+  
+  return result;
 }
 
 }  // namespace pinky

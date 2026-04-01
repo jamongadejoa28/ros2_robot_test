@@ -16,13 +16,21 @@ enum class EmotionId : uint8_t {
   kSleepy = 5,
 };
 
-// Renders an RGB565 emotion bitmap for the LCD.
-// Returns a pixel buffer of width*height*2 bytes.
+struct GifFrame {
+  std::vector<uint8_t> pixels; // RGB565, width * height * 2
+  int delay_ms;
+};
+
+struct AnimatedEmotion {
+  std::vector<GifFrame> frames;
+};
+
+// Renders a static shape-based RGB565 emotion bitmap for the LCD.
 std::vector<uint8_t> RenderEmotion(EmotionId emotion, int width = 320, int height = 240);
 
-// Load an image file (GIF/PNG/JPG first frame), resize to target dims,
-// return as RGB565 buffer. Returns empty vector on failure.
-std::vector<uint8_t> LoadEmotionImage(const std::string& filepath,
-                                      int width = 320, int height = 240);
+// Load an animated GIF (or static PNG/JPG) and resize it.
+// Returns an AnimatedEmotion containing all frames.
+AnimatedEmotion LoadAnimatedEmotion(const std::string& filepath,
+                                    int width = 320, int height = 240);
 
 }  // namespace pinky

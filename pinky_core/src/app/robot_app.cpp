@@ -47,7 +47,7 @@ bool RobotApp::Init() {
       motor_.reset();
     }
 
-    lidar_ = std::make_unique<SllidarDriver>(SllidarDriver::Config{});
+    lidar_ = std::make_unique<SllidarDriver>(SllidarDriver::Config{config_.lidar_device, config_.lidar_baudrate});
     if (!lidar_->Init()) {
       std::cerr << "Lidar init failed (Check connection/power)\n";
       lidar_.reset();
@@ -74,18 +74,7 @@ bool RobotApp::Init() {
     lcd_ = std::make_unique<Ili9341Lcd>(Ili9341Lcd::Config{});
     if (!lcd_->Init()) {
       std::cerr << "LCD init failed\n";
-    } else {
-      int lcd_w = lcd_->Width();
-      int lcd_h = lcd_->Height();
-      // Try startup image first, fall back to shape-based emotion
-      std::string gif_path = config_.rl.emotion_dir + "/basic.gif";
-      auto fb = LoadEmotionImage(gif_path, lcd_w, lcd_h);
-      if (fb.empty()) {
-        std::cerr << "LCD: Failed to load " << gif_path
-                  << " — using shape fallback\n";
-        fb = RenderEmotion(EmotionId::kNeutral, lcd_w, lcd_h);
-      }
-      lcd_->DrawFrameRgb565(fb.data(), fb.size());
+      lcd_.reset();
     }
 #else
     std::cerr << "Cannot enable HAL: Project built without BUILD_HAL.\n";
@@ -133,6 +122,7 @@ void RobotApp::Run() {
   adc_thread_ = std::thread(&RobotApp::AdcLoop, this);
   lidar_thread_ = std::thread(&RobotApp::LidarLoop, this);
   if (camera_) camera_thread_ = std::thread(&RobotApp::CameraLoop, this);
+  if (lcd_) lcd_thread_ = std::thread(&RobotApp::LcdLoop, this);
 
   while (running_.load()) {
     std::this_thread::sleep_for(1s);
@@ -155,6 +145,7 @@ void RobotApp::Stop() {
   if (adc_thread_.joinable()) adc_thread_.join();
   if (lidar_thread_.joinable()) lidar_thread_.join();
   if (camera_thread_.joinable()) camera_thread_.join();
+  if (lcd_thread_.joinable()) lcd_thread_.join();
 }
 
 void RobotApp::OnTcpMessage(int fd, const ParsedMessage& msg) {
@@ -190,25 +181,8 @@ void RobotApp::OnTcpMessage(int fd, const ParsedMessage& msg) {
 
   if (msg.msg_type == MsgType::kSetEmotion) {
     uint8_t eid = DeserializeEmotion(msg.payload);
-    if (lcd_) {
-      int lcd_w = lcd_->Width();
-      int lcd_h = lcd_->Height();
-      // Map EmotionId to GIF filename
-      static const char* kEmotionFiles[] = {
-        "basic.gif", "happy.gif", "sad.gif",
-        "angry.gif", "basic.gif", "bored.gif",
-      };
-      auto emotion = static_cast<EmotionId>(eid);
-      std::string gif_path = config_.rl.emotion_dir + "/" +
-                             kEmotionFiles[eid < 6 ? eid : 0];
-      auto fb = LoadEmotionImage(gif_path, lcd_w, lcd_h);
-      if (fb.empty()) {
-        std::cerr << "LCD: Failed to load " << gif_path
-                  << " — using shape fallback\n";
-        fb = RenderEmotion(emotion, lcd_w, lcd_h);
-      }
-      lcd_->DrawFrameRgb565(fb.data(), fb.size());
-    }
+    std::lock_guard<std::mutex> lock(state_mutex_);
+    current_emotion_ = static_cast<EmotionId>(eid);
     return;
   }
 
@@ -219,6 +193,58 @@ void RobotApp::OnTcpMessage(int fd, const ParsedMessage& msg) {
                      static_cast<double>(pose.y),
                      static_cast<double>(pose.theta));
     return;
+  }
+}
+
+void RobotApp::LcdLoop() {
+  EmotionId loaded_emotion = static_cast<EmotionId>(-1);
+  AnimatedEmotion anim;
+  int current_frame = 0;
+
+  static const char* kEmotionFiles[] = {
+    "basic.gif", "happy.gif", "sad.gif",
+    "angry.gif", "basic.gif", "bored.gif",
+  };
+
+  while (running_.load()) {
+    auto start_time = std::chrono::steady_clock::now();
+    EmotionId target_emotion;
+    {
+      std::lock_guard<std::mutex> lock(state_mutex_);
+      target_emotion = current_emotion_;
+    }
+
+    if (target_emotion != loaded_emotion) {
+      loaded_emotion = target_emotion;
+      int lcd_w = lcd_->Width();
+      int lcd_h = lcd_->Height();
+      uint8_t eid = static_cast<uint8_t>(target_emotion);
+      std::string gif_path = config_.rl.emotion_dir + "/" + kEmotionFiles[eid < 6 ? eid : 0];
+      
+      anim = LoadAnimatedEmotion(gif_path, lcd_w, lcd_h);
+      if (anim.frames.empty()) {
+        std::cerr << "LCD: Failed to load " << gif_path << " — using shape fallback\n";
+        GifFrame fallback;
+        fallback.pixels = RenderEmotion(target_emotion, lcd_w, lcd_h);
+        fallback.delay_ms = 100;
+        anim.frames.push_back(std::move(fallback));
+      }
+      current_frame = 0;
+    }
+
+    int delay_ms = 100;
+    if (!anim.frames.empty() && lcd_) {
+      const auto& frame = anim.frames[current_frame];
+      lcd_->DrawFrameRgb565(frame.pixels.data(), frame.pixels.size());
+      delay_ms = frame.delay_ms;
+      current_frame = (current_frame + 1) % anim.frames.size();
+    }
+
+    auto elapsed = std::chrono::steady_clock::now() - start_time;
+    auto target_duration = std::chrono::milliseconds(delay_ms);
+    if (elapsed < target_duration) {
+      std::this_thread::sleep_for(target_duration - elapsed);
+    }
   }
 }
 
