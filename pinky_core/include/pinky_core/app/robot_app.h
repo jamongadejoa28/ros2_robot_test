@@ -61,7 +61,7 @@ struct RobotConfig {
   bool enable_hal{true};  // False on PC for mock
 
   std::string lidar_device{"/dev/ttyUSB0"};
-  uint32_t lidar_baudrate{115200};
+  uint32_t lidar_baudrate{460800};
 
   // Robot physics (overridable via YAML, defaults from constants.h)
   double wheel_radius{kWheelRadius};

@@ -26,6 +26,7 @@ from pinky_station.gui.widgets.map_widget import MapWidget
 from pinky_station.workers.sensor_worker import SensorWorker
 from pinky_station.workers.camera_worker import CameraWorker
 from pinky_station.workers.command_worker import CommandWorker
+from pinky_station.workers.nav_worker import NavWorker
 
 class PinkyStationWindow(QMainWindow):
     def __init__(self, config: StationConfig | None = None):

@@ -5,7 +5,7 @@
 
 ---
 
-## 1. 수정 내역 요약 (총 3건)
+## 1. 수정 내역 요약 (총 5건)
 
 ### #1. PC 스테이션 GUI 강제 종료 (AttributeError)
 
@@ -52,9 +52,45 @@ TCP/UDP 통신 연결 실패나 타임아웃 발생 시, 내부적으로 워커 
 
 ---
 
+### #4. 전진/후진 (W/S) 입력 무시 및 다이나믹셀 모터 정지 현상
+
+**파일:**
+- `include/pinky_core/hal/dynamixel_motor.h`
+- `src/hal/dynamixel_motor.cpp`
+
+**문제:**
+조향(A/D) 명령은 수행되나, 병진(W/S) 명령을 보내면 바퀴가 전혀 굴러가지 않는 현상. 
+확인 결과, C++ 하드웨어 드라이버 내부에서 모터 회전 속도(RPM) 값을 입력받아 처리하는 `SetVelocityWait` 함수가 인자의 단위를 `rad/s`로 착각하고 변환 계수(`rpm_to_rads_`)로 한 번 더 나누는 이중 계산(Double Conversion) 버그가 있었습니다. 이로 인해 정상 RPM이 수천 RPM으로 증폭되어 다이나믹셀 모터의 내부 안전장치(Max Speed Limit)가 작동, 회전을 강제 차단했습니다.
+
+**수정:**
+`dynamixel_motor.cpp` 및 헤더 파일에서 `SetVelocityWait` 함수의 매개변수를 직관적인 `rpm`으로 수정하고, 함수 내부에 존재하던 불필요한 이중 나눗셈 로직을 완전히 제거했습니다.
+
+---
+
+### #5. 라이다 C1 통신 불가 (0x80008004 에러) 및 순수 C++ 환경 구축
+
+**파일:**
+- `CMakeLists.txt`
+- `src/app/main.cpp`
+- `include/pinky_core/app/robot_app.h`
+- `pinky_devices/rplidar_sdk/` (신규 분리)
+
+**문제:**
+1. 라이다 장치와 통신 연결 후 `0x80008004 (OPERATION_NOT_SUPPORT)` 에러가 발생. 이는 구버전 라이다 라이브러리가 C1 기종의 460800 보드레이트와 새로운 통신 규격을 파싱하지 못해서 발생. 
+2. 기존 시스템에 남아있던 구버전 정적 라이브러리(`.a`)를 잘못 링크하고 있었으며, 앱 실행 시 `--config` 파라미터를 넘겨주지 않으면 C++ 코어에 하드코딩된 기본값 `115200`으로 통신을 시도함.
+3. ROS(로봇 운영체제) 패키지 종속성 없이 순수 C++ 단일 환경으로 동작해야 하는 요구사항을 충족하지 못함.
+
+**수정:**
+1. **ROS 의존성 제거 및 SDK 독립:** `sllidar_ros2` 내부에 있던 최신 RPLiDAR SDK 소스코드를 ROS 패키지 밖인 `pinky_devices/rplidar_sdk`로 전면 분리하고, `CMakeLists.txt`가 구버전 라이브러리 대신 이 최신 C/C++ 소스코드를 직접 가져와 함께 컴파일하도록 수정했습니다.
+2. **자동 설정 파일 로드:** `main.cpp`를 수정하여, 사용자가 앱 실행 시 `--config` 옵션을 명시하지 않더라도 프로그램이 자동으로 `../config/robot_config.yaml` 파일을 찾아서 파싱하도록 기본 동작을 개선했습니다.
+3. **C1 보드레이트 기본값 반영:** `robot_app.h`의 Lidar 기본 보드레이트 값을 `115200`에서 C1 기준인 `460800`으로 하드코딩 교체하여, 어떠한 경우에도 최우선적으로 C1 장비를 스캔하도록 조치했습니다.
+
+---
+
 ## 2. 하드웨어 런타임 검증 현황 업데이트
 
-기존 `phase4_8_remaining_impl_report.md`에 명시되었던 미검증 항목 중 2건이 금번 런타임 테스트를 통해 수정 및 검증 완료되었습니다.
+기존 `phase4_8_remaining_impl_report.md`에 명시되었던 미검증 항목 중 금번 런타임 테스트를 통해 수정 및 검증 완료된 사항입니다:
 
 * [x] SllidarDriver RPLiDAR SDK 런타임 검증 (성공)
 * [x] ILI9341 LCD + EmotionRenderer 실물 표시 검증 (애니메이션 정상 구동)
+* [x] DynamixelMotor 실 하드웨어 검증 (W/S 전후진 구동 성공)

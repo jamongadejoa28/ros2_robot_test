@@ -43,18 +43,17 @@ int main(int argc, char** argv) {
   }
 
   // Load YAML first, then apply CLI overrides
-  if (!config_path.empty()) {
-    if (!pinky::LoadConfig(config_path, config)) {
-      std::cerr << "Failed to load config: " << config_path << "\n";
-      return 1;
-    }
+  if (config_path.empty()) config_path = "../config/robot_config.yaml";
+  if (!pinky::LoadConfig(config_path, config)) {
+    std::cerr << "Warning: Could not load config from " << config_path << ", using defaults.\n";
+  } else {
     std::cout << "Config loaded: " << config_path << "\n";
   }
-  if (!rl_config_path.empty()) {
-    if (!pinky::LoadRlConfig(rl_config_path, config.rl)) {
-      std::cerr << "Failed to load RL config: " << rl_config_path << "\n";
-      return 1;
-    }
+
+  if (rl_config_path.empty()) rl_config_path = "../config/rl_config.yaml";
+  if (!pinky::LoadRlConfig(rl_config_path, config.rl)) {
+    std::cerr << "Warning: Could not load RL config from " << rl_config_path << ", using defaults.\n";
+  } else {
     std::cout << "RL config loaded: " << rl_config_path << "\n";
   }
   if (mock_flag) {

@@ -47,7 +47,10 @@ bool RobotApp::Init() {
       motor_.reset();
     }
 
-    lidar_ = std::make_unique<SllidarDriver>(SllidarDriver::Config{config_.lidar_device, config_.lidar_baudrate});
+    lidar_ = std::make_unique<SllidarDriver>(SllidarDriver::Config{
+    config_.lidar_device, 
+    static_cast<int>(config_.lidar_baudrate) 
+    });
     if (!lidar_->Init()) {
       std::cerr << "Lidar init failed (Check connection/power)\n";
       lidar_.reset();

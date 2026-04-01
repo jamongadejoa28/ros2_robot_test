@@ -77,10 +77,8 @@ void DynamixelMotor::InitializeMotors() {
   }
 }
 
-void DynamixelMotor::SetVelocityWait(double left_rad_s, double right_rad_s) {
-  double rpm_l = left_rad_s / rpm_to_rads_;
-  double rpm_r = right_rad_s / rpm_to_rads_;
-  SetDoubleRpm(rpm_l, rpm_r);
+void DynamixelMotor::SetVelocityWait(double left_rpm, double right_rpm) {
+  SetDoubleRpm(left_rpm, right_rpm);
 }
 
 bool DynamixelMotor::SetDoubleRpm(double rpm_l, double rpm_r) {

@@ -25,7 +25,7 @@ class DynamixelMotor : public IMotorDriver {
   bool Init() override;
 
   // Set motor velocities in rad/s
-  void SetVelocityWait(double left_rad_s, double right_rad_s) override;
+  void SetVelocityWait(double left_rpm, double right_rpm) override;
 
   // Read current joints state (position, velocity)
   JointState ReadJointState() override;

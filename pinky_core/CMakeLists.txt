@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_compile_options(-Wno-psabi)
+
 # ---------------------------------------------------------------------------
 # Options
 # ---------------------------------------------------------------------------
@@ -118,16 +120,26 @@ if(BUILD_HAL)
     src/hal/ili9341_lcd.cpp
   )
   
-  # Search for RPLIDAR SDK locally in pinky_devices
+  # Search for standalone pure C++ RPLIDAR SDK locally in pinky_devices
   set(RPLIDAR_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../pinky_devices/rplidar_sdk")
   if(EXISTS "${RPLIDAR_SDK_DIR}")
     target_include_directories(pinky_hal PUBLIC 
-      ${RPLIDAR_SDK_DIR}/sdk/include
-      ${RPLIDAR_SDK_DIR}/sdk/src
+      ${RPLIDAR_SDK_DIR}/include
+      ${RPLIDAR_SDK_DIR}/src
     )
-    # The static library name and release path for aarch64 gcc
-    file(GLOB RPLIDAR_LIB_PATH "${RPLIDAR_SDK_DIR}/output/Linux/Release/libsl_lidar_sdk.a")
-    target_link_libraries(pinky_hal PUBLIC pinky_core dxl_sbc_cpp wiringPi ws2811 ${RPLIDAR_LIB_PATH} pthread)
+    
+    # Add SDK source files directly to pinky_hal to ensure latest version is compiled
+    file(GLOB_RECURSE RPLIDAR_SDK_SRCS 
+      "${RPLIDAR_SDK_DIR}/src/arch/linux/*.cpp"
+      "${RPLIDAR_SDK_DIR}/src/arch/linux/*.c"
+      "${RPLIDAR_SDK_DIR}/src/hal/*.cpp"
+      "${RPLIDAR_SDK_DIR}/src/hal/*.c"
+      "${RPLIDAR_SDK_DIR}/src/*.cpp"
+      "${RPLIDAR_SDK_DIR}/src/*.c"
+    )
+    target_sources(pinky_hal PRIVATE ${RPLIDAR_SDK_SRCS})
+    
+    target_link_libraries(pinky_hal PUBLIC pinky_core dxl_sbc_cpp wiringPi ws2811 pthread)
   else()
     message(WARNING "RPLIDAR SDK not found. Lidar node will fail to compile. Please install in pinky_devices!")
     target_link_libraries(pinky_hal PUBLIC pinky_core dxl_sbc_cpp wiringPi ws2811)
