@@ -134,6 +134,8 @@ if(BUILD_HAL)
       "${RPLIDAR_SDK_DIR}/src/arch/linux/*.c"
       "${RPLIDAR_SDK_DIR}/src/hal/*.cpp"
       "${RPLIDAR_SDK_DIR}/src/hal/*.c"
+      "${RPLIDAR_SDK_DIR}/src/dataunpacker/*.cpp"
+      "${RPLIDAR_SDK_DIR}/src/dataunpacker/unpacker/*.cpp"
       "${RPLIDAR_SDK_DIR}/src/*.cpp"
       "${RPLIDAR_SDK_DIR}/src/*.c"
     )
