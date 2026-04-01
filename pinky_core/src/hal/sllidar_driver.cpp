@@ -34,13 +34,19 @@ bool SllidarDriver::Init() {
 
   if (SL_IS_FAIL(drv_->connect(channel))) {
     std::cerr << "SllidarDriver: Failed to connect to LiDAR on " << config_.port << "\n";
+    delete drv_;
+    drv_ = nullptr;
     return false;
   }
 
   sl_lidar_response_device_info_t devinfo;
   sl_result op_result = drv_->getDeviceInfo(devinfo);
   if (SL_IS_FAIL(op_result)) {
-    std::cerr << "SllidarDriver: Failed to get device info, code: 0x" << std::hex << op_result << std::dec << "\n";
+    std::cerr << "SllidarDriver: Failed to get device info, code: 0x"
+              << std::hex << op_result << std::dec
+              << " (check USB/UART connection and power)\n";
+    delete drv_;
+    drv_ = nullptr;
     return false;
   }
 

@@ -51,7 +51,7 @@ struct RlConfig {
   double control_period_ms{kControlPeriodMs};
 
   // Emotion GIF directory (absolute or relative to working dir)
-  std::string emotion_dir{"/home/hajun/ros2_ws/ros_test/src/pinky_pro/pinky_emotion/emotion"};
+  std::string emotion_dir{"emotion"};
 };
 
 struct RobotConfig {

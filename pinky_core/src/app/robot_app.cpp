@@ -42,19 +42,34 @@ bool RobotApp::Init() {
   if (config_.enable_hal) {
 #ifdef BUILD_HAL
     motor_ = std::make_unique<DynamixelMotor>(DynamixelMotor::Config{});
-    if (!motor_->Init()) std::cerr << "Motor init failed (Check power)\n";
+    if (!motor_->Init()) {
+      std::cerr << "Motor init failed (Check power)\n";
+      motor_.reset();
+    }
 
     lidar_ = std::make_unique<SllidarDriver>(SllidarDriver::Config{});
-    if (!lidar_->Init()) std::cerr << "Lidar init failed\n";
+    if (!lidar_->Init()) {
+      std::cerr << "Lidar init failed (Check connection/power)\n";
+      lidar_.reset();
+    }
 
     imu_ = std::make_unique<Bno055Imu>(Bno055Imu::Config{});
-    if (!imu_->Init()) std::cerr << "IMU init failed\n";
+    if (!imu_->Init()) {
+      std::cerr << "IMU init failed\n";
+      imu_.reset();
+    }
 
     adc_ = std::make_unique<AdcSensor>(AdcSensor::Config{});
-    if (!adc_->Init()) std::cerr << "ADC init failed\n";
+    if (!adc_->Init()) {
+      std::cerr << "ADC init failed\n";
+      adc_.reset();
+    }
 
     led_ = std::make_unique<Ws2811Led>(Ws2811Led::Config{});
-    if (!led_->Init()) std::cerr << "LED init failed\n";
+    if (!led_->Init()) {
+      std::cerr << "LED init failed\n";
+      led_.reset();
+    }
 
     lcd_ = std::make_unique<Ili9341Lcd>(Ili9341Lcd::Config{});
     if (!lcd_->Init()) {
@@ -63,9 +78,11 @@ bool RobotApp::Init() {
       int lcd_w = lcd_->Width();
       int lcd_h = lcd_->Height();
       // Try startup image first, fall back to shape-based emotion
-      auto fb = LoadEmotionImage(config_.rl.emotion_dir + "/basic.gif",
-                                 lcd_w, lcd_h);
+      std::string gif_path = config_.rl.emotion_dir + "/basic.gif";
+      auto fb = LoadEmotionImage(gif_path, lcd_w, lcd_h);
       if (fb.empty()) {
+        std::cerr << "LCD: Failed to load " << gif_path
+                  << " — using shape fallback\n";
         fb = RenderEmotion(EmotionId::kNeutral, lcd_w, lcd_h);
       }
       lcd_->DrawFrameRgb565(fb.data(), fb.size());
@@ -186,6 +203,8 @@ void RobotApp::OnTcpMessage(int fd, const ParsedMessage& msg) {
                              kEmotionFiles[eid < 6 ? eid : 0];
       auto fb = LoadEmotionImage(gif_path, lcd_w, lcd_h);
       if (fb.empty()) {
+        std::cerr << "LCD: Failed to load " << gif_path
+                  << " — using shape fallback\n";
         fb = RenderEmotion(emotion, lcd_w, lcd_h);
       }
       lcd_->DrawFrameRgb565(fb.data(), fb.size());

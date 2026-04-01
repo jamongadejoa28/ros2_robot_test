@@ -55,16 +55,19 @@ class ConnectionManager:
     def disconnect(self):
         if self._state == ConnectionState.DISCONNECTED:
             return
-            
+
+        # Set state FIRST to prevent re-entrant calls from tcp.on_disconnect
+        self._set_state(ConnectionState.DISCONNECTED)
+
         if self.tcp:
+            # Clear callback before disconnect to break the recursion cycle
+            self.tcp.on_disconnect = None
             self.tcp.disconnect()
             self.tcp = None
-            
+
         if self.udp:
             self.udp.stop()
             self.udp = None
-            
-        self._set_state(ConnectionState.DISCONNECTED)
 
     def send_cmd_vel(self, linear_x: float, angular_z: float):
         if self.tcp and self._state == ConnectionState.CONNECTED:

@@ -171,3 +171,56 @@ QT_QPA_PLATFORM=offscreen python3 -m pytest tests/ -v
 | `app/robot_app.h` | 수정 | RlConfig::emotion_dir |
 | `app/robot_app.cpp` | 수정 | DrawFrameRgb565, GIF 로드 로직 |
 | `app/config_loader.cpp` | 수정 | emotion 섹션 파싱 |
+
+---
+
+## 7. 런타임 테스트 후 버그 수정 3건 (2026-04-01)
+
+실제 로봇(RPi5, user `pinky`)과 PC에서 통합 실행 후 발견된 3가지 런타임 이슈를 수정했습니다.
+
+### 7.1. PC GUI 무한 재귀 크래시 (RecursionError)
+
+- **문제:** 로봇과의 TCP 연결이 끊어지면 `TcpClient.disconnect()` → `on_disconnect` 콜백 → `ConnectionManager.disconnect()` → `self.tcp.disconnect()` 순환 호출이 발생하여 파이썬 재귀 한도(RecursionError)에 도달하며 GUI가 크래시됨.
+- **수정 (`pinky_station/pinky_station/net/connection.py`):**
+  - `disconnect()` 진입 시 **상태를 먼저** `DISCONNECTED`로 설정하여 재진입 차단
+  - `self.tcp.on_disconnect = None`으로 콜백 제거 후 `tcp.disconnect()` 호출하여 순환 참조 근본 차단
+  - 이미 `DISCONNECTED` 상태이면 즉시 `return`하는 가드 조건 추가
+
+### 7.2. 감정 GIF 경로 불일치 (로봇에서 shape fallback만 표시)
+
+- **문제:** `RlConfig::emotion_dir`의 기본값이 `/home/hajun/ros2_ws/ros_test/src/pinky_pro/pinky_emotion/emotion`으로 하드코딩되어 있어, 로봇(user `pinky`, home `/home/pinky/`)에서는 해당 경로가 존재하지 않음. `LoadEmotionImage()`가 항상 실패하여 도형 기반 fallback만 LCD에 표시됨.
+- **수정:**
+  - `RlConfig::emotion_dir` 기본값을 `"emotion"` (상대경로)으로 변경 — 빌드 디렉토리 기준 `emotion/` 폴더에서 GIF 탐색
+  - `rl_config.yaml`의 `emotion.dir` 값도 동일하게 상대경로로 변경
+  - GIF 로드 실패 시 시도한 전체 경로를 stderr로 출력하여 디버깅 용이하게 개선
+  - `main.cpp`에서 시작 시 `Emotion dir:` 경로를 로그 출력
+
+- **로봇 배포 시 사용법:**
+  ```bash
+  # 방법 1: 빌드 폴더 옆에 emotion 디렉토리 배치
+  cp -r /path/to/emotion ~/pinky_core/build/emotion/
+
+  # 방법 2: --rl-config로 절대경로가 포함된 설정 파일 지정
+  ./pinky_robot --rl-config /path/to/rl_config.yaml
+  ```
+
+### 7.3. HAL 드라이버 Init 실패 시 안전하지 않은 동작
+
+- **문제:** `SllidarDriver::Init()`가 `0x80008002`(디바이스 정보 조회 실패)로 실패해도 `lidar_` unique_ptr이 유효한 상태로 남아, `Run()` 단계에서 `StartScan()` 및 `LidarLoop()`가 깨진 드라이버 객체에 접근. 다른 HAL 드라이버(Motor, IMU, ADC, LED)도 동일한 문제 구조.
+- **수정:**
+  - **`robot_app.cpp`:** 모든 HAL 드라이버 `Init()` 실패 시 `.reset()` 호출하여 포인터를 nullptr로 해제. 이후 `Run()`의 null 체크에 의해 관련 스레드/루프가 자연스럽게 스킵됨.
+  - **`sllidar_driver.cpp`:** `connect()` 실패 및 `getDeviceInfo()` 실패 시 `drv_`를 `delete` 후 nullptr로 설정하여 소멸자에서의 이중 접근 방지. 에러 메시지에 `"check USB/UART connection and power"` 안내 추가.
+  - **참고:** `0x80008002` 에러 자체는 하드웨어 연결/전원 문제이므로 코드 수정만으로는 해결 불가. USB/UART 케이블 및 라이다 전원 공급 확인 필요.
+
+---
+
+## 8. 변경 파일 종합 (섹션 7 관련, 6개 파일)
+
+| 파일 | 변경 유형 | 관련 항목 |
+|------|-----------|-----------|
+| `net/connection.py` (Python) | 수정 | disconnect 재귀 차단 |
+| `app/robot_app.h` | 수정 | emotion_dir 기본값 상대경로 |
+| `app/robot_app.cpp` | 수정 | HAL init 실패 시 reset, GIF 실패 로그 |
+| `app/main.cpp` | 수정 | emotion_dir 로그 출력 |
+| `hal/sllidar_driver.cpp` | 수정 | Init 실패 시 drv_ 정리, 에러 메시지 개선 |
+| `config/rl_config.yaml` | 수정 | emotion.dir 상대경로 |

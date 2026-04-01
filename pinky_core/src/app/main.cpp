@@ -65,6 +65,7 @@ int main(int argc, char** argv) {
   std::cout << "  TCP port: " << config.tcp_port
             << ", UDP port: " << config.udp_port
             << ", HAL: " << (config.enable_hal ? "ON" : "OFF") << "\n";
+  std::cout << "  Emotion dir: " << config.rl.emotion_dir << "\n";
 
   pinky::RobotApp app(config);
   if (!app.Init()) {
