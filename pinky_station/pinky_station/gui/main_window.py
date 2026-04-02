@@ -173,6 +173,7 @@ class PinkyStationWindow(QMainWindow):
             self.nav_worker = NavWorker(self.command_worker)
             self.nav_worker.sig_log.connect(lambda txt: self.terminal_view.append_log(2, txt))
             self.sensor_worker.sig_odom.connect(self.nav_worker.on_odom_received)
+            self.nav_worker.sig_amcl_pose.connect(self.map_view.update_amcl_pose)
             self.nav_worker.start()
 
     def _cleanup_workers(self):

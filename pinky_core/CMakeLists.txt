@@ -118,6 +118,7 @@ if(BUILD_HAL)
     src/hal/adc_sensor.cpp
     src/hal/ws2811_led.cpp
     src/hal/ili9341_lcd.cpp
+    src/hal/cv_camera.cpp
   )
   
   # Search for standalone pure C++ RPLIDAR SDK locally in pinky_devices

@@ -13,6 +13,7 @@
 #include "pinky_core/hal/adc_sensor.h"
 #include "pinky_core/hal/ws2811_led.h"
 #include "pinky_core/hal/ili9341_lcd.h"
+#include "pinky_core/hal/cv_camera.h"
 #endif
 
 namespace pinky {
@@ -78,6 +79,12 @@ bool RobotApp::Init() {
     if (!lcd_->Init()) {
       std::cerr << "LCD init failed\n";
       lcd_.reset();
+    }
+
+    camera_ = std::make_unique<CvCameraDriver>();
+    if (!camera_->Init()) {
+      std::cerr << "Camera init failed\n";
+      camera_.reset();
     }
 #else
     std::cerr << "Cannot enable HAL: Project built without BUILD_HAL.\n";

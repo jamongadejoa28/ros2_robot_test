@@ -100,6 +100,7 @@ class NavWorker(QThread):
     Connects PyQt signals (from SensorWorker) to ROS 2 publishers.
     """
     sig_log = pyqtSignal(str)
+    sig_amcl_pose = pyqtSignal(float, float, float)
 
     def __init__(self, command_worker, parent=None):
         super().__init__(parent)
@@ -118,6 +119,7 @@ class NavWorker(QThread):
                 rclpy.init()
 
             self.ros_node = RosBridgeNode(self.command_worker)
+            self.ros_node.on_amcl_pose = self.sig_amcl_pose.emit
             self._running = True
             
             self.sig_log.emit("Nav2 Bridge (ROS 2) started successfully.")
@@ -138,6 +140,17 @@ class NavWorker(QThread):
         self.wait()
 
     def on_odom_received(self, msg: ParsedMessage):
+        """Slot to receive Odom messages from SensorWorker."""
+        if not self._running or not self.ros_node:
+            return
+            
+        try:
+            # C++ SerializeOdom: x, y, theta, vx, vth (5 x float32)
+            x, y, theta, vx, vth = struct.unpack('<5f', msg.payload[:20])
+            self.ros_node.publish_odom(x, y, theta, vx, vth)
+        except Exception as e:
+            self.sig_log.emit(f"Failed to publish odom to ROS: {e}")
+sage):
         """Slot to receive Odom messages from SensorWorker."""
         if not self._running or not self.ros_node:
             return

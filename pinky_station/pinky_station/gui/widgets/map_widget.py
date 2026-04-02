@@ -33,8 +33,22 @@ class MapWidget(QWidget):
         # Odometry trail (world coordinates)
         self.trail: deque[tuple[float, float]] = deque(maxlen=2000)
         self._trail_skip = 0
+        self._use_amcl = False
+
+    def update_amcl_pose(self, x: float, y: float, theta: float):
+        self._use_amcl = True
+        self.robot_x = x
+        self.robot_y = y
+        self.robot_theta = theta
+        self._trail_skip += 1
+        if self._trail_skip >= 10:
+            self._trail_skip = 0
+            self.trail.append((x, y))
+        self.update()
 
     def update_odom(self, msg):
+        if self._use_amcl:
+            return # Ignore odom since we have amcl_pose
         try:
             # C++ SerializeOdom: x,y,theta,vx,vth as 5 x float32 = 20 bytes
             x, y, theta, vx, vth = struct.unpack('<5f', msg.payload[:20])

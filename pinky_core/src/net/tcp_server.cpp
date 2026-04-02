@@ -134,7 +134,13 @@ bool TcpServer::Send(int client_fd, const std::vector<uint8_t>& data) {
   while (total_sent < data.size()) {
     ssize_t sent = send(client_fd, data.data() + total_sent,
                         data.size() - total_sent, MSG_NOSIGNAL);
-    if (sent < 0) return false;
+    if (sent < 0) {
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        usleep(1000);
+        continue;
+      }
+      return false;
+    }
     total_sent += sent;
   }
   return true;
@@ -157,7 +163,13 @@ void TcpServer::Broadcast(const std::vector<uint8_t>& data) {
     while (total_sent < data.size()) {
       ssize_t sent = send(fd, data.data() + total_sent,
                           data.size() - total_sent, MSG_NOSIGNAL);
-      if (sent < 0) break;
+      if (sent < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+          usleep(1000);
+          continue;
+        }
+        break;
+      }
       total_sent += sent;
     }
   }

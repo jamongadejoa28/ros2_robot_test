@@ -217,40 +217,6 @@ std::vector<uint8_t> RenderEmotion(EmotionId emotion, int width, int height) {
 
 AnimatedEmotion LoadAnimatedEmotion(const std::string& filepath, int target_w, int target_h) {
   AnimatedEmotion result;
-  
-#ifdef PINKY_HAS_OPENCV
-  cv::VideoCapture cap(filepath);
-  if (cap.isOpened()) {
-    cv::Mat frame;
-    double fps = cap.get(cv::CAP_PROP_FPS);
-    int delay_ms = (fps > 0.0 && fps < 100.0) ? static_cast<int>(1000.0 / fps) : 100;
-
-    while (cap.read(frame)) {
-      if (frame.empty()) break;
-      
-      cv::Mat resized;
-      cv::resize(frame, resized, cv::Size(target_w, target_h), 0, 0, cv::INTER_NEAREST);
-      
-      GifFrame gf;
-      gf.pixels.resize(target_w * target_h * 2, 0);
-      gf.delay_ms = delay_ms;
-      
-      for (int y = 0; y < target_h; ++y) {
-        for (int x = 0; x < target_w; ++x) {
-          cv::Vec3b px = resized.at<cv::Vec3b>(y, x);
-          // OpenCV is BGR: px[0] is B, px[1] is G, px[2] is R
-          uint16_t color = Rgb565(px[2], px[1], px[0]);
-          int out_idx = (y * target_w + x) * 2;
-          std::memcpy(&gf.pixels[out_idx], &color, 2);
-        }
-      }
-      result.frames.push_back(std::move(gf));
-    }
-    if (!result.frames.empty()) {
-      return result;
-    }
-  }
-#endif
 
   std::ifstream file(filepath, std::ios::binary | std::ios::ate);
   if (!file.is_open()) return result;
