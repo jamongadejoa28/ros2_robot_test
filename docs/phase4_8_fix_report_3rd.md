@@ -110,6 +110,30 @@ ROS 2 브릿지 노드(`RosBridgeNode`)에 `amcl_pose` (geometry_msgs/PoseWithCo
 
 ---
 
+### #9. PC 스테이션 파이썬 GUI 실행 실패 (SyntaxError 수정)
+
+**파일:** `pinky_station/pinky_station/workers/nav_worker.py`
+
+**문제:**
+이전 코드 수정 과정에서 `nav_worker.py` 파일의 하단에 괄호와 메서드 텍스트가 깨지는 문법 오류(`SyntaxError: unmatched ')'`)가 중복으로 삽입되었습니다. 이로 인해 PC 스테이션 앱 메인 프로세스가 실행조차 되지 않았습니다.
+
+**수정:**
+해당 파일의 중복되고 손상된 코드 블록을 완전히 제거하고 문법을 복구했습니다.
+
+---
+
+### #10. Raspberry Pi 5 카메라 스트리밍 메모리 할당 에러 (V4L2)
+
+**파일:** `pinky_core/src/hal/cv_camera.cpp`
+
+**문제:**
+로봇 환경(Raspberry Pi 5)에서 기본 OpenCV V4L2 백엔드(`cap.open(0)`)로 카메라에 접근 시 시스템 메모리 할당 오류(`Failed to allocate required memory`)가 발생하며 GStreamer 파이프라인이 붕괴되어 카메라 영상 획득에 실패했습니다.
+
+**수정:**
+로봇 카메라 초기화 로직을 개선하여 Raspberry Pi 5의 최신 카메라 스택인 `libcamerasrc` GStreamer 파이프라인을 최우선으로 사용하도록 수정했습니다. 실패 시 호환을 위해 `v4l2src` 및 기본 인덱스 접근으로 폴백하도록 안전장치를 마련했습니다.
+
+---
+
 ## 2. 남은 미구현/미검증 항목 업데이트
 
 이번 수정으로 아래 항목들이 모두 해결되었습니다:

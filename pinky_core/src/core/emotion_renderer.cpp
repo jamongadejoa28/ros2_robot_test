@@ -234,9 +234,15 @@ AnimatedEmotion LoadAnimatedEmotion(const std::string& filepath, int target_w, i
   
   // Fallback to static image if it's not an animated GIF
   if (!img) {
+    const char* reason = stbi_failure_reason();
+    std::cerr << "stbi_load_gif_from_memory failed: " << (reason ? reason : "Unknown") << "\n";
     img = stbi_load_from_memory(buffer.data(), static_cast<int>(size),
                                 &src_w, &src_h, &comp, 4);
-    if (!img) return result;
+    if (!img) {
+      reason = stbi_failure_reason();
+      std::cerr << "stbi_load_from_memory failed: " << (reason ? reason : "Unknown") << "\n";
+      return result;
+    }
     frames = 1;
   }
 

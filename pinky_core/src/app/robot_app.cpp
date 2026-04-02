@@ -229,9 +229,20 @@ void RobotApp::LcdLoop() {
       int lcd_w = lcd_->Width();
       int lcd_h = lcd_->Height();
       uint8_t eid = static_cast<uint8_t>(target_emotion);
-      std::string gif_path = config_.rl.emotion_dir + "/" + kEmotionFiles[eid < 6 ? eid : 0];
+      std::string dir = config_.rl.emotion_dir;
+      std::string gif_path = dir + "/" + kEmotionFiles[eid < 6 ? eid : 0];
       
       anim = LoadAnimatedEmotion(gif_path, lcd_w, lcd_h);
+      if (anim.frames.empty()) {
+        // Fallback: try looking in parent directory or build directory
+        gif_path = "../build/" + dir + "/" + kEmotionFiles[eid < 6 ? eid : 0];
+        anim = LoadAnimatedEmotion(gif_path, lcd_w, lcd_h);
+        if (anim.frames.empty()) {
+          gif_path = "../" + dir + "/" + kEmotionFiles[eid < 6 ? eid : 0];
+          anim = LoadAnimatedEmotion(gif_path, lcd_w, lcd_h);
+        }
+      }
+
       if (anim.frames.empty()) {
         std::cerr << "LCD: Failed to load " << gif_path << " — using shape fallback\n";
         GifFrame fallback;

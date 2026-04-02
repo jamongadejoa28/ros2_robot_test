@@ -15,15 +15,28 @@ CvCameraDriver::~CvCameraDriver() {
 
 bool CvCameraDriver::Init() {
 #ifdef PINKY_HAS_OPENCV
-  cap_.open(0);
+  std::string pipeline_libcam = "libcamerasrc ! video/x-raw, width=320, height=240, framerate=10/1 ! videoconvert ! appsink";
+  std::string pipeline_v4l2_mjpg = "v4l2src device=/dev/video0 ! image/jpeg, width=320, height=240, framerate=10/1 ! jpegdec ! videoconvert ! appsink";
+  
+  cap_.open(pipeline_libcam, cv::CAP_GSTREAMER);
   if (!cap_.isOpened()) {
-    std::cerr << "CvCameraDriver: Failed to open camera 0\n";
-    return false;
+    std::cerr << "CvCameraDriver: libcamerasrc failed, trying v4l2src MJPG pipeline\n";
+    cap_.open(pipeline_v4l2_mjpg, cv::CAP_GSTREAMER);
   }
-  // lower resolution to improve stream speed
-  cap_.set(cv::CAP_PROP_FRAME_WIDTH, 320);
-  cap_.set(cv::CAP_PROP_FRAME_HEIGHT, 240);
-  cap_.set(cv::CAP_PROP_FPS, 10);
+
+  if (!cap_.isOpened()) {
+    std::cerr << "CvCameraDriver: pipelines failed, trying direct V4L2 MJPG\n";
+    cap_.open(0, cv::CAP_V4L2);
+    if (!cap_.isOpened()) {
+      std::cerr << "CvCameraDriver: Failed to open camera\n";
+      return false;
+    }
+    cap_.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
+    cap_.set(cv::CAP_PROP_FRAME_WIDTH, 320);
+    cap_.set(cv::CAP_PROP_FRAME_HEIGHT, 240);
+    cap_.set(cv::CAP_PROP_FPS, 10);
+  }
+  
   return true;
 #else
   std::cerr << "CvCameraDriver: OpenCV not enabled\n";
