@@ -96,6 +96,14 @@ bool RobotApp::Init() {
   }
 #endif
 
+#ifdef PINKY_HAS_OPENCV
+  camera_ = std::make_unique<OpencvCamera>();
+  if (!camera_->Init()) {
+    std::cerr << "Camera init failed\n";
+    camera_.reset();
+  }
+#endif
+
   // Hook network callbacks
   tcp_->SetMessageCallback([this](int fd, const ParsedMessage& msg) {
     this->OnTcpMessage(fd, msg);

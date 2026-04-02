@@ -29,4 +29,4 @@ navigation:
   control_period_ms: 50
 
 emotion:
-  dir: "emotion"
+  dir: "../emotion"

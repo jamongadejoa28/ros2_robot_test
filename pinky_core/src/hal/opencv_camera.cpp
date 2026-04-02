@@ -15,14 +15,27 @@ OpencvCamera::~OpencvCamera() {
 
 bool OpencvCamera::Init() {
 #ifdef PINKY_HAS_OPENCV
-  cap_.open(0);
+  std::string pipeline = "libcamerasrc ! video/x-raw, width=640, height=480, framerate=15/1 ! videoconvert ! appsink";
+  cap_.open(pipeline, cv::CAP_GSTREAMER);
+  if (!cap_.isOpened()) {
+    std::cout << "OpencvCamera: libcamerasrc failed, trying /dev/video0 (V4L2)...\n";
+    cap_.open(0, cv::CAP_V4L2);
+  }
+  if (!cap_.isOpened()) {
+    std::cout << "OpencvCamera: V4L2 failed, trying default API...\n";
+    cap_.open(0);
+  }
+  
   if (!cap_.isOpened()) {
     std::cerr << "OpencvCamera: Failed to open camera device 0\n";
     return false;
   }
-  cap_.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-  cap_.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-  std::cout << "OpencvCamera: Initialized.\n";
+  
+  if (cap_.getBackendName() != "GSTREAMER") {
+    cap_.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+    cap_.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+  }
+  std::cout << "OpencvCamera: Initialized (Backend: " << cap_.getBackendName() << ").\n";
   return true;
 #else
   std::cerr << "OpencvCamera: OpenCV not available, camera disabled.\n";
