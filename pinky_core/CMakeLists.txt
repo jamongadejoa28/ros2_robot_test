@@ -136,6 +136,10 @@ if(BUILD_HAL)
       "${RPLIDAR_SDK_DIR}/src/hal/*.c"
       "${RPLIDAR_SDK_DIR}/src/*.cpp"
       "${RPLIDAR_SDK_DIR}/src/*.c"
+      "${RPLIDAR_SDK_DIR}/src/dataunpacker/*.cpp"
+      "${RPLIDAR_SDK_DIR}/src/dataunpacker/*.c"
+      "${RPLIDAR_SDK_DIR}/src/dataunpacker/unpacker/*.cpp"
+      "${RPLIDAR_SDK_DIR}/src/dataunpacker/unpacker/*.c"
     )
     target_sources(pinky_hal PRIVATE ${RPLIDAR_SDK_SRCS})
     
