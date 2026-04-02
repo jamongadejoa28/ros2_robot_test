@@ -5,6 +5,7 @@
 #include <cmath>
 #include "pinky_core/common/constants.h"
 #include "pinky_core/core/emotion_renderer.h"
+#include "pinky_core/hal/opencv_camera.h"
 
 #ifdef BUILD_HAL
 #include "pinky_core/hal/dynamixel_motor.h"

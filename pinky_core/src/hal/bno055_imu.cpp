@@ -32,6 +32,8 @@ bool Bno055Imu::Init() {
   if (chipid != 0xA0) { // BNO055 chip ID
     std::cerr << "Bno055Imu: Invalid chip ID: 0x" << std::hex << chipid << "\n";
     // Depending on timing, might still succeed, but usually signals failure
+    std::cerr << "Bno055Imu: Init failed due to hardware connection error.\n";
+    return false;
   }
 
   // SYS_TRIGGER, RST_SYS

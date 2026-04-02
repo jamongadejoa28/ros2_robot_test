@@ -67,6 +67,7 @@ set(CORE_SOURCES
   src/net/udp_server.cpp
   src/net/connection_manager.cpp
   src/net/frame_sender.cpp
+  src/hal/opencv_camera.cpp
   src/core/diff_drive.cpp
   src/core/odometry.cpp
   src/core/lidar_processor.cpp

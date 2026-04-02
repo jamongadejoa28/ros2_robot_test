@@ -70,7 +70,7 @@ class MapWidget(QWidget):
         tx = cx + (self.offset_x - self.robot_x) * self.scale_factor
         ty = cy - (self.offset_y - self.robot_y) * self.scale_factor
         
-        # Draw axes
+        # Draw world origin axes (Red=X, Green=Y) (Reverted change #3-1)
         painter.setPen(QPen(QColor(255, 0, 0), 2)) # X-axis
         painter.drawLine(int(tx), int(ty), int(tx + self.scale_factor), int(ty))
         painter.setPen(QPen(QColor(0, 255, 0), 2)) # Y-axis
@@ -80,8 +80,8 @@ class MapWidget(QWidget):
         painter.setPen(Qt.GlobalColor.transparent)
         painter.setBrush(QColor(0, 200, 255))
         
-        rx_screen = cx + self.offset_x * self.scale_factor
-        ry_screen = cy - self.offset_y * self.scale_factor
+        rx_screen = tx + self.robot_x * self.scale_factor
+        ry_screen = ty - self.robot_y * self.scale_factor
         
         robot_radius = 8
         painter.drawEllipse(QPointF(rx_screen, ry_screen), robot_radius, robot_radius)
