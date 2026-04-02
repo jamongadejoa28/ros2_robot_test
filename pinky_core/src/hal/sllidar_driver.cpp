@@ -59,7 +59,7 @@ bool SllidarDriver::StartScan() {
   
   // DenseBoost scan mode
   LidarScanMode scanMode;
-  if (SL_IS_FAIL(drv_->startScanExpress(0, 0, 0, &scanMode))) {
+  if (SL_IS_FAIL(drv_->startScan(false, true, 0, &scanMode))) {
     std::cerr << "SllidarDriver: Failed to start scan\n";
     return false;
   }
@@ -100,7 +100,11 @@ bool SllidarDriver::GetScan(LidarScan& scan) {
   scan.ranges.resize(count);
   for (size_t i = 0; i < count; ++i) {
     float range_m = nodes[i].dist_mm_q2 / 4000.0f; 
-    scan.ranges[i] = range_m;
+    if (range_m == 0.0f) {
+      scan.ranges[i] = 0.0f; // 0.0f means invalid/no return
+    } else {
+      scan.ranges[i] = range_m;
+    }
   }
 
   return true;
