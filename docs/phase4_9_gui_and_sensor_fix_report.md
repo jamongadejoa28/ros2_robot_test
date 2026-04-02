@@ -9,18 +9,25 @@
 *   **문제**: PC GUI 화면에서 카메라 피드가 나타나지 않음. 로봇(`pinky_core`) 측에 카메라 드라이버 인터페이스만 있고 실제 이미지를 캡처하여 TCP로 전송하는 구현체가 부재함.
 *   **수정**:
     *   `pinky_core/include/pinky_core/hal/opencv_camera.h` 및 `pinky_core/src/hal/opencv_camera.cpp` 신규 작성.
-    *   OpenCV(`cv::VideoCapture`)를 활용하여 카메라(디바이스 0)로부터 프레임을 가져오도록 구현.
-    *   기존 파이썬 환경(`pinkylib`)과 하드웨어 방향을 맞추기 위해 영상을 180도 회전(`cv::ROTATE_180`) 적용.
-    *   JPEG 압축(`cv::imencode`)을 거쳐 `CameraFrame` 메시지로 TCP 브로드캐스팅.
-    *   `RobotApp::Init()`에서 `OpencvCamera` 초기화 연결 및 `CMakeLists.txt` 빌드 소스 추가.
+    *   OpenCV(`cv::VideoCapture`)를 활용하되, 라즈베리파이의 `libcamera` 환경을 고려하여 GStreamer 파이프라인(`libcamerasrc`)을 최우선으로 시도하고, 실패 시 V4L2(`/dev/video0`)로 폴백하도록 구현.
+    *   기존 파이썬 환경(`pinkylib`)과 하드웨어 방향을 맞추기 위해 영상을 180도 회전(`cv::ROTATE_180`) 적용 후 JPEG 압축 전송.
+    *   `RobotApp::Init()`에서 `OpencvCamera` 객체를 정상적으로 할당(`make_unique`)하도록 초기화 로직 보완.
 
 ### 2.2. GUI 라이다(LiDAR) 2D 스캔 그래프 출력 에러 수정
-*   **문제**: PyQtGraph의 ScatterPlotItem을 사용하는 과정에서 인자 전달 타입 문제로 인해 그래프 뷰가 비어있는 현상 발생.
+*   **문제**: 
+    1. PyQtGraph의 ScatterPlotItem 인자 전달 타입 문제.
+    2. 로봇 코어(`pinky_core`)의 `LidarProcessor`가 24등분 섹터의 최솟값을 풀링(Min-Pooling)할 때, 측정 불가(0.0) 값을 그대로 최솟값으로 취해버리는 논리적 오류가 발생. 이로 인해 GUI에서 0.0인 섹터를 무시하게 되어 Lidar 그래프가 전체적으로 비어보이는 현상 발생.
 *   **수정**:
-    *   `pinky_station/gui/widgets/lidar_view.py` 파일 내 `setData` 호출부 수정.
-    *   기존 위치 인자(`self.scatter.setData(x_pts, y_pts)`)에서 명시적 키워드 인자(`self.scatter.setData(x=x_pts, y=y_pts)`)로 변경하여 내부 PyQt6 모듈의 오류 회피.
+    *   **GUI 측**: 명시적 키워드 인자(`self.scatter.setData(x=np.array(x_pts), y=np.array(y_pts))`)와 Numpy 배열 변환을 통해 안정적인 렌더링 지원.
+    *   **로봇 코어 측**: `pinky_core/src/core/lidar_processor.cpp`의 섹터 Min-Pooling 로직에서 유효하지 않은 측정값(`0.05f` 이하)을 무시하도록 조건문(`if (cleaned[j] > 0.05f)`) 추가.
 
-### 2.3. 맵 위젯(MapWidget) 뷰포트 좌표계 기준 변경
+### 2.3. LCD 감정 표현(GIF) 로딩 시 OpenCV 충돌 에러 수정
+*   **문제**: 로봇 실행 시 `OpenCV | GStreamer warning: Error opening bin: no element "emotion"` 및 `CAP_IMAGES: can't find starting number` 에러 발생과 함께 LCD 출력이 무시됨. 이는 OpenCV의 `VideoCapture`가 기본적으로 GIF 애니메이션 파싱을 지원하지 않아 이미지 시퀀스로 오해하고 발생하는 오류임.
+*   **수정**:
+    *   `pinky_core/src/core/emotion_renderer.cpp` 파일의 `LoadAnimatedEmotion` 함수에서 OpenCV(`cv::VideoCapture`) 기반 GIF 로딩 코드를 완전히 제거.
+    *   기존 프로젝트에 포함되어 있던 C 헤더 라이브러리인 `stb_image.h`(`stbi_load_gif_from_memory`)를 단독으로 사용하여 GIF 애니메이션 프레임들을 안정적으로 로드하도록 일원화.
+
+### 2.4. 맵 위젯(MapWidget) 뷰포트 좌표계 기준 변경
 *   **문제**: 로봇이 고정된 상태에서 오도메트리 이동 시 맵의 월드 좌표계 자체가 로봇을 따라다니는 형태로 렌더링되어 사용자가 로봇의 실제 이동 궤적을 시각적으로 파악하기 어려움.
 *   **수정**:
     *   `pinky_station/gui/widgets/map_widget.py` 파일의 변환(Transform) 계산 로직 수정.

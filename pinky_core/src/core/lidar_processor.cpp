@@ -46,9 +46,11 @@ LidarSectors LidarProcessor::Process(const float* ranges,
     int end = (i < num_sectors_ - 1) ? start + sector_size : num_points;
     end = std::min(end, num_points);
 
-    float sector_min = cleaned[start];
-    for (int j = start + 1; j < end; ++j) {
-      sector_min = std::min(sector_min, cleaned[j]);
+    float sector_min = max_range_;
+    for (int j = start; j < end; ++j) {
+      if (cleaned[j] > 0.05f) { // ignore 0s and very small invalid readings
+        sector_min = std::min(sector_min, cleaned[j]);
+      }
     }
 
     // 4. Normalize by max_range

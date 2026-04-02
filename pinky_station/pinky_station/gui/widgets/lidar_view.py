@@ -41,4 +41,4 @@ class LidarViewWidget(QWidget):
                 y_pts.append(y)
                 
         # Update plot
-        self.scatter.setData(x=x_pts, y=y_pts)
+        self.scatter.setData(x=np.array(x_pts), y=np.array(y_pts))
