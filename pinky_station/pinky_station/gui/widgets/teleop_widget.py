@@ -13,15 +13,23 @@ class TeleopWidget(QGroupBox):
 
         # Speed slider (range: 0.05 .. max_speed in 0.01 steps)
         speed_layout = QHBoxLayout()
+        
         self.slider_speed = QSlider(Qt.Orientation.Horizontal)
         self.slider_speed.setRange(5, int(max_speed * 100))
-        default_val = int(default_speed * 100)
-        self.slider_speed.setValue(default_val)
-        self.lbl_speed = QLabel(f"Speed: {default_speed:.2f} m/s")
-        
+        self.slider_speed.setValue(int(default_speed * 100))
+        self.lbl_speed = QLabel(f"Lin: {default_speed:.2f} m/s")
         self.slider_speed.valueChanged.connect(self._on_speed_changed)
+
+        self.slider_angular = QSlider(Qt.Orientation.Horizontal)
+        self.slider_angular.setRange(10, int(angular_speed * 100 * 2)) # up to 2x default angular
+        self.slider_angular.setValue(int(angular_speed * 100))
+        self.lbl_angular = QLabel(f"Ang: {angular_speed:.2f} rad/s")
+        self.slider_angular.valueChanged.connect(self._on_angular_changed)
+
         speed_layout.addWidget(self.lbl_speed)
         speed_layout.addWidget(self.slider_speed)
+        speed_layout.addWidget(self.lbl_angular)
+        speed_layout.addWidget(self.slider_angular)
         
         # Grid of buttons
         grid_layout = QGridLayout()
@@ -64,8 +72,13 @@ class TeleopWidget(QGroupBox):
 
     def _on_speed_changed(self, value):
         speed = value / 100.0
-        self.lbl_speed.setText(f"Speed: {speed:.2f} m/s")
+        self.lbl_speed.setText(f"Lin: {speed:.2f} m/s")
+
+    def _on_angular_changed(self, value):
+        speed = value / 100.0
+        self.lbl_angular.setText(f"Ang: {speed:.2f} rad/s")
 
     def _send_cmd(self, linear_mult, angular_mult):
-        speed = self.slider_speed.value() / 100.0
-        self.sig_cmd_vel.emit(linear_mult * speed, angular_mult * self._angular_speed)
+        linear_speed = self.slider_speed.value() / 100.0
+        angular_speed = self.slider_angular.value() / 100.0
+        self.sig_cmd_vel.emit(linear_mult * linear_speed, angular_mult * angular_speed)

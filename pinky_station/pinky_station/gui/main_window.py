@@ -116,8 +116,8 @@ class PinkyStationWindow(QMainWindow):
             angle_min = 0.0
             angle_increment = 2.0 * math.pi / 24.0
             self.lidar_view.update_scan(ranges, angle_min, angle_increment)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Lidar data error: {e}")
 
     def _on_pose_mode_changed(self, active: bool):
         self.map_view.set_pose_mode(active)
@@ -197,3 +197,33 @@ class PinkyStationWindow(QMainWindow):
         self._cleanup_workers()
         self.conn.disconnect()
         event.accept()
+
+    def keyPressEvent(self, event):
+        from PyQt6.QtCore import Qt
+        if getattr(self, 'command_worker', None) and not event.isAutoRepeat():
+            k = event.key()
+            if k == Qt.Key.Key_W:
+                self.teleop_view.btn_fwd.pressed.emit()
+            elif k == Qt.Key.Key_S:
+                self.teleop_view.btn_bwd.pressed.emit()
+            elif k == Qt.Key.Key_A:
+                self.teleop_view.btn_left.pressed.emit()
+            elif k == Qt.Key.Key_D:
+                self.teleop_view.btn_right.pressed.emit()
+            elif k == Qt.Key.Key_Space:
+                self.teleop_view.btn_stop.pressed.emit()
+        super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        from PyQt6.QtCore import Qt
+        if getattr(self, 'command_worker', None) and not event.isAutoRepeat():
+            k = event.key()
+            if k == Qt.Key.Key_W:
+                self.teleop_view.btn_fwd.released.emit()
+            elif k == Qt.Key.Key_S:
+                self.teleop_view.btn_bwd.released.emit()
+            elif k == Qt.Key.Key_A:
+                self.teleop_view.btn_left.released.emit()
+            elif k == Qt.Key.Key_D:
+                self.teleop_view.btn_right.released.emit()
+        super().keyReleaseEvent(event)
