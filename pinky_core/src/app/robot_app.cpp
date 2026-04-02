@@ -271,18 +271,20 @@ void RobotApp::MotorOdomLoop() {
       
       {
         std::lock_guard<std::mutex> lock(state_mutex_);
-        // Update odometry
-        current_odom_ = odom_calc_.Update(
+        // 1. Get raw wheel odometry
+        Odometry raw_odom = odom_calc_.Update(
             js.position[0], js.position[1], js.stamp);
         
-        // Broadcast Odom via UDP
+        // 2. Fuse with IMU data
+        sensor_fusion_.Predict(raw_odom.vx, raw_odom.vth, js.stamp);
+        current_odom_ = sensor_fusion_.GetState(js.stamp);
+        
+        // Broadcast fused Odom via UDP
         std::vector<uint8_t> odom_payload = serializer_->SerializeOdom(current_odom_);
         std::vector<uint8_t> udp_pkt = serializer_->Frame(MsgType::kOdom, odom_payload);
         udp_->Send(udp_pkt);
 
         // Apply commands to motor
-        // Both manual and RL paths write to target_cmd_vel_;
-        // RL path applies PD control in LidarLoop at inference rate.
         auto [rpm_l, rpm_r] = diff_drive_.VelocityToRpm(
             target_cmd_vel_.linear_x, target_cmd_vel_.angular_z);
         motor_->SetVelocityWait(rpm_l, rpm_r);

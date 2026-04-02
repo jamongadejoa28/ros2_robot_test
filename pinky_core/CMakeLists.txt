@@ -70,6 +70,7 @@ set(CORE_SOURCES
   src/hal/opencv_camera.cpp
   src/core/diff_drive.cpp
   src/core/odometry.cpp
+  src/core/sensor_fusion.cpp
   src/core/lidar_processor.cpp
   src/core/battery_monitor.cpp
   src/core/led_controller.cpp

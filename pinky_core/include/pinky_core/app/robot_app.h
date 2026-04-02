@@ -13,7 +13,9 @@
 #include "pinky_core/protocol/serializer.h"
 #include "pinky_core/core/diff_drive.h"
 #include "pinky_core/core/odometry.h"
+#include "pinky_core/core/sensor_fusion.h"
 #include "pinky_core/core/battery_monitor.h"
+#include "pinky_core/core/lidar_processor.h"
 #include "pinky_core/core/led_controller.h"
 #include "pinky_core/core/lidar_processor.h"
 #include "pinky_core/core/emotion_renderer.h"
@@ -115,6 +117,7 @@ class RobotApp {
   // Core & Inference (initialized from config_ in constructor body)
   DiffDrive diff_drive_;
   OdometryAccumulator odom_calc_;
+  SensorFusion sensor_fusion_;
   BatteryMonitor battery_monitor_{kBattVMin, kBattVMax, kBattLowThresh};
   LidarProcessor lidar_processor_{kLidarSectors, kMaxLidarDist};
 #ifdef PINKY_HAS_ONNXRUNTIME
