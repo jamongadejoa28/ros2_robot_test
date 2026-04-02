@@ -15,6 +15,7 @@ try:
     from nav_msgs.msg import Odometry
     from geometry_msgs.msg import Twist, PoseStamped, TransformStamped
     from tf2_ros import TransformBroadcaster
+
     HAS_ROS2 = True
     Node_Base = Node
 except ImportError:
@@ -26,20 +27,22 @@ class RosBridgeNode(Node_Base):
     """ROS 2 Node that bridges pinky_station messages to/from ROS 2 topics."""
 
     def __init__(self, command_worker):
-        super().__init__('pinky_station_bridge')
+        super().__init__("pinky_station_bridge")
         self.cmd_worker = command_worker
 
         # Publishers
-        self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
+        self.odom_pub = self.create_publisher(Odometry, "odom", 10)
         self.tf_broadcaster = TransformBroadcaster(self)
 
         # Subscribers
         self.cmd_vel_sub = self.create_subscription(
-            Twist, 'cmd_vel', self._cmd_vel_callback, 10)
+            Twist, "cmd_vel", self._cmd_vel_callback, 10
+        )
         self.goal_sub = self.create_subscription(
-            PoseStamped, 'goal_pose', self._goal_callback, 10)
+            PoseStamped, "goal_pose", self._goal_callback, 10
+        )
 
-        self.get_logger().info('Pinky Station ROS 2 Bridge Node Started')
+        self.get_logger().info("Pinky Station ROS 2 Bridge Node Started")
 
     def _cmd_vel_callback(self, msg: Twist):
         # Forward ROS 2 cmd_vel to the robot
@@ -51,13 +54,13 @@ class RosBridgeNode(Node_Base):
         if self.cmd_worker:
             x = msg.pose.position.x
             y = msg.pose.position.y
-            
+
             # Extract yaw from quaternion
             q = msg.pose.orientation
             siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
             cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
             yaw = math.atan2(siny_cosp, cosy_cosp)
-            
+
             self.cmd_worker.send_nav_goal(x, y, yaw)
 
     def publish_odom(self, x, y, theta, vx, vth):
@@ -66,31 +69,31 @@ class RosBridgeNode(Node_Base):
         # TF Broadcast
         t = TransformStamped()
         t.header.stamp = now
-        t.header.frame_id = 'odom'
-        t.child_frame_id = 'base_link'
+        t.header.frame_id = "odom"
+        t.child_frame_id = "base_link"
         t.transform.translation.x = x
         t.transform.translation.y = y
         t.transform.translation.z = 0.0
-        
+
         # yaw to quaternion
         t.transform.rotation.z = math.sin(theta / 2.0)
         t.transform.rotation.w = math.cos(theta / 2.0)
-        
+
         self.tf_broadcaster.sendTransform(t)
 
         # Odom Publish
         odom_msg = Odometry()
         odom_msg.header.stamp = now
-        odom_msg.header.frame_id = 'odom'
-        odom_msg.child_frame_id = 'base_link'
-        
+        odom_msg.header.frame_id = "odom"
+        odom_msg.child_frame_id = "base_link"
+
         odom_msg.pose.pose.position.x = x
         odom_msg.pose.pose.position.y = y
         odom_msg.pose.pose.orientation = t.transform.rotation
-        
+
         odom_msg.twist.twist.linear.x = vx
         odom_msg.twist.twist.angular.z = vth
-        
+
         self.odom_pub.publish(odom_msg)
 
 
@@ -99,6 +102,7 @@ class NavWorker(QThread):
     QThread that spins the ROS 2 Bridge Node.
     Connects PyQt signals (from SensorWorker) to ROS 2 publishers.
     """
+
     sig_log = pyqtSignal(str)
     sig_amcl_pose = pyqtSignal(float, float, float)
 
@@ -121,9 +125,9 @@ class NavWorker(QThread):
             self.ros_node = RosBridgeNode(self.command_worker)
             self.ros_node.on_amcl_pose = self.sig_amcl_pose.emit
             self._running = True
-            
+
             self.sig_log.emit("Nav2 Bridge (ROS 2) started successfully.")
-            
+
             # Spin until stopped
             while self._running and rclpy.ok():
                 rclpy.spin_once(self.ros_node, timeout_sec=0.1)
@@ -143,21 +147,10 @@ class NavWorker(QThread):
         """Slot to receive Odom messages from SensorWorker."""
         if not self._running or not self.ros_node:
             return
-            
+
         try:
             # C++ SerializeOdom: x, y, theta, vx, vth (5 x float32)
-            x, y, theta, vx, vth = struct.unpack('<5f', msg.payload[:20])
-            self.ros_node.publish_odom(x, y, theta, vx, vth)
-        except Exception as e:
-            self.sig_log.emit(f"Failed to publish odom to ROS: {e}")
-sage):
-        """Slot to receive Odom messages from SensorWorker."""
-        if not self._running or not self.ros_node:
-            return
-            
-        try:
-            # C++ SerializeOdom: x, y, theta, vx, vth (5 x float32)
-            x, y, theta, vx, vth = struct.unpack('<5f', msg.payload[:20])
+            x, y, theta, vx, vth = struct.unpack("<5f", msg.payload[:20])
             self.ros_node.publish_odom(x, y, theta, vx, vth)
         except Exception as e:
             self.sig_log.emit(f"Failed to publish odom to ROS: {e}")
