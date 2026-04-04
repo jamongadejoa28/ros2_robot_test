@@ -11,7 +11,7 @@ class BatteryWidget(QGroupBox):
         self.lbl_voltage = QLabel("Voltage: -- V")
         self.lbl_voltage.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_voltage.setStyleSheet(
-            "font-weight: bold; font-size: 14px; color: #cdd6f4;"
+            "font-weight: bold; font-size: 14px; color: #eaf0fb; background: transparent;"
         )
 
         self.progress = QProgressBar()

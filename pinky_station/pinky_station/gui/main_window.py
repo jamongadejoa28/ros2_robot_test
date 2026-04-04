@@ -87,12 +87,12 @@ class PinkyStationWindow(QMainWindow):
         # ── Content area ─────────────────────────────────────────────
         content = QWidget()
         content_layout = QHBoxLayout(content)
-        content_layout.setContentsMargins(8, 8, 8, 8)
-        content_layout.setSpacing(8)
+        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setSpacing(10)
 
         # ── Left panel ───────────────────────────────────────────────
         left_widget = QWidget()
-        left_widget.setStyleSheet("QWidget { background-color: #181825; border-radius: 8px; }")
+        left_widget.setObjectName("panel_left")
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(8, 8, 8, 8)
         left_layout.setSpacing(6)
@@ -117,7 +117,7 @@ class PinkyStationWindow(QMainWindow):
 
         # ── Center panel ─────────────────────────────────────────────
         center_widget = QWidget()
-        center_widget.setStyleSheet("QWidget { background-color: #181825; border-radius: 8px; }")
+        center_widget.setObjectName("panel_center")
         center_layout = QVBoxLayout(center_widget)
         center_layout.setContentsMargins(8, 8, 8, 8)
         center_layout.setSpacing(4)
@@ -128,7 +128,7 @@ class PinkyStationWindow(QMainWindow):
 
         # ── Right panel ──────────────────────────────────────────────
         right_widget = QWidget()
-        right_widget.setStyleSheet("QWidget { background-color: #181825; border-radius: 8px; }")
+        right_widget.setObjectName("panel_right")
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(8, 8, 8, 8)
         right_layout.setSpacing(4)

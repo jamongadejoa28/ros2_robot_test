@@ -10,9 +10,9 @@ class VideoViewWidget(QWidget):
         self.lbl_image = QLabel("No Camera Feed")
         self.lbl_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_image.setStyleSheet(
-            "background-color: #11111b; color: #45475a; "
-            "border: 1px solid #313244; border-radius: 6px; "
-            "font-size: 14px;"
+            "background-color: #060912; color: #1e3050; "
+            "border: 1px solid #162032; border-radius: 6px; "
+            "font-size: 14px; font-weight: bold;"
         )
         
         layout.addWidget(self.lbl_image)

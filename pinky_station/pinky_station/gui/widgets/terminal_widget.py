@@ -27,7 +27,7 @@ class TerminalWidget(QWidget):
         self.text_edit = QPlainTextEdit()
         self.text_edit.setReadOnly(True)
         self.text_edit.setMaximumBlockCount(max_lines)
-        self.text_edit.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; font-family: monospace;")
+        self.text_edit.setStyleSheet("")  # use QSS theme
         
         layout.addLayout(tools_layout)
         layout.addWidget(self.text_edit)

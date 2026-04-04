@@ -126,12 +126,12 @@ class MapWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        painter.fillRect(self.rect(), QColor(17, 17, 27))  # #11111b
+        painter.fillRect(self.rect(), QColor(8, 13, 23))  # #080d17 deep navy
 
         world_to_screen = self.get_world_to_screen_transform()
 
         # Draw grid
-        grid_pen = QPen(QColor(49, 50, 68, 120), 1)  # #313244 faint
+        grid_pen = QPen(QColor(30, 48, 80, 140), 1)  # #1e3050 blue-tinted grid
         painter.setPen(grid_pen)
         grid_step = 1.0  # 1 metre grid
         screen_w = self.rect().width()
