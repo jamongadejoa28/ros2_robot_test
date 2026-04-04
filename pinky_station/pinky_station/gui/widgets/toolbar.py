@@ -26,6 +26,7 @@ class ToolbarWidget(QWidget):
         self.cb_active_robot.currentTextChanged.connect(self.sig_active_robot_changed.emit)
 
         self.btn_disconnect = QPushButton("Disconnect")
+        self.btn_disconnect.setObjectName("btn_disconnect")
         self.btn_disconnect.setFixedWidth(100)
         self.btn_disconnect.clicked.connect(self._on_disconnect_clicked)
 
@@ -36,6 +37,7 @@ class ToolbarWidget(QWidget):
         self.input_ip.setFixedWidth(120)
         
         self.btn_add_robot = QPushButton("Add Robot")
+        self.btn_add_robot.setObjectName("btn_add_robot")
         self.btn_add_robot.setFixedWidth(100)
         
         self.lbl_status = QLabel("Ready")
@@ -56,17 +58,22 @@ class ToolbarWidget(QWidget):
 
         # Row 2: Map and Navigation
         row2 = QHBoxLayout()
-        self.btn_pose = QPushButton("2D Pose Estimate")
+        self.btn_pose = QPushButton("⊕ 2D Pose Estimate")
+        self.btn_pose.setObjectName("btn_pose")
         self.btn_pose.setCheckable(True)
-        self.btn_pose.setFixedWidth(150)
+        self.btn_pose.setFixedWidth(160)
         
         self.btn_load_map = QPushButton("Load Map")
         self.btn_load_map.setFixedWidth(100)
 
-        self.btn_start = QPushButton("Start")
-        self.btn_stop = QPushButton("Stop")
-        self.btn_reset = QPushButton("Reset")
-        self.btn_add_waypoint = QPushButton("Add Waypoint")
+        self.btn_start = QPushButton("▶  Start")
+        self.btn_start.setObjectName("btn_start")
+        self.btn_stop = QPushButton("⏸  Stop")
+        self.btn_stop.setObjectName("btn_stop")
+        self.btn_reset = QPushButton("↺  Reset")
+        self.btn_reset.setObjectName("btn_reset")
+        self.btn_add_waypoint = QPushButton("＋ Add Waypoint")
+        self.btn_add_waypoint.setObjectName("btn_add_waypoint")
         self.btn_add_waypoint.setEnabled(False)
 
         row2.addWidget(self.btn_pose)
@@ -110,15 +117,15 @@ class ToolbarWidget(QWidget):
             self.cb_active_robot.removeItem(index)
 
     def _on_stop_clicked(self):
-        if self.btn_stop.text() == "Stop":
+        if "Stop" in self.btn_stop.text():
             self.sig_nav_stop.emit()
-            self.btn_stop.setText("Resume")
+            self.btn_stop.setText("▶  Resume")
         else:
             self.sig_nav_resume.emit()
-            self.btn_stop.setText("Stop")
+            self.btn_stop.setText("⏸  Stop")
 
     def _on_reset_clicked(self):
-        self.btn_stop.setText("Stop")
+        self.btn_stop.setText("⏸  Stop")
         self.sig_nav_reset.emit()
 
     def set_status(self, text: str, color: str):

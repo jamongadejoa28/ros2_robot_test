@@ -200,7 +200,61 @@ if (!cmd.robot_id().empty() && cmd.robot_id() != config_.robot_id) {
 
 ---
 
-## 5. 남은 작업 (계획서 기준 미구현 항목)
+## 5. 3차 수정 (2026-04-04 — 2차 테스트 후)
+
+### Bug 12: 자율주행 미동작 — ONNX 없을 때 P-control fallback 없음
+
+**원인:**  
+`robot_app.cpp`의 `LidarLoop`에서 `if (is_active && onnx_actor_)` 조건으로 ONNX 미로드 시 `target_cmd_vel_` 변경이 없어 로봇이 정지 상태 유지.
+
+**수정:**  
+`onnx_actor_` 없을 때 단순 P-control fallback 추가:
+- 목표와의 거리/방위각을 계산
+- 30cm 이내 도달 시 navigation 비활성화
+- angular: `1.8 × angle_diff` clamped to `±kWMax`
+- linear: `0.4 × dist × turn_scale` clamped to `kVMax`
+
+**수정 파일:** `pinky_core/src/app/robot_app.cpp`
+
+---
+
+### Bug 13: 배터리 미표시 — BatteryWidget protobuf 필드 접근 오류
+
+**원인:**  
+`battery_widget.py`의 `update_status()`가 `struct.unpack('<ffB', msg.payload[:9])` 방식으로 이진 파싱을 시도하나, 실제 전달되는 객체는 `.voltage`, `.percentage` 필드를 가진 protobuf 객체. `AttributeError`가 `except: pass`로 조용히 처리되어 항상 `-- V`, `0%` 표시.
+
+**수정:** `.voltage`, `.percentage` 직접 접근으로 변경.
+
+---
+
+### Bug 14: 최종 Waypoint 도달 시 로봇이 계속 주행
+
+**원인:** 마지막 waypoint 30cm 이내 도달 시 GUI에서 `send_nav_cancel`을 보내지 않음.
+
+**수정:** `main_window.py`의 `_on_odom`에서 최종 도달 시 `send_nav_cancel` 호출 추가.
+
+---
+
+### 개선 12: LiDAR 그래프 위젯 제거
+
+**내용:** Center 패널 하단의 pyqtgraph LiDAR 2D 스캔 그래프 제거. lidar 데이터 수신 처리는 유지 (내부적으로 활용 가능하도록).
+
+---
+
+### 개선 13: GUI 전면 스타일 개선
+
+**수정 파일:**
+- `dark.qss` — Catppuccin Mocha 팔레트 기반 전면 재작성. 네비게이션 버튼 색상 구분 (Start=초록, Stop=주황, Reset=빨강, Waypoint=파랑), 포즈 버튼 보라색, STOP 버튼 진한 빨강
+- `toolbar.py` — 버튼 objectName 지정, 아이콘 텍스트 추가
+- `teleop_widget.py` — STOP 버튼 objectName으로 QSS 색상 적용
+- `map_widget.py` — 1m 간격 격자선 추가, 배경색 진하게
+- `video_view.py` — 카메라 피드 없음 영역 스타일 개선
+- `battery_widget.py` — 배터리 % 에 따른 색상(초록/주황/빨강) 동적 변경
+- `main_window.py` — LiDAR 위젯 제거, 패널 배경색 분리, 섹션 레이블 스타일 통일
+
+---
+
+## 6. 남은 작업 (계획서 기준 미구현 항목)
 
 계획서(`bubbly-waddling-whistle.md`) 대비 아직 구현되지 않은 주요 항목:
 

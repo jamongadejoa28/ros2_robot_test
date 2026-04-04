@@ -126,9 +126,36 @@ class MapWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        painter.fillRect(self.rect(), QColor(30, 30, 30))
-        
+        painter.fillRect(self.rect(), QColor(17, 17, 27))  # #11111b
+
         world_to_screen = self.get_world_to_screen_transform()
+
+        # Draw grid
+        grid_pen = QPen(QColor(49, 50, 68, 120), 1)  # #313244 faint
+        painter.setPen(grid_pen)
+        grid_step = 1.0  # 1 metre grid
+        screen_w = self.rect().width()
+        screen_h = self.rect().height()
+        inv = self.get_screen_to_world_transform()
+        wl = inv.map(QPointF(0, screen_h)).x()
+        wr = inv.map(QPointF(screen_w, 0)).x()
+        wb = inv.map(QPointF(0, screen_h)).y()
+        wt = inv.map(QPointF(0, 0)).y()
+        import math as _math
+        x0 = _math.floor(wl / grid_step) * grid_step
+        y0 = _math.floor(wb / grid_step) * grid_step
+        xi = x0
+        while xi <= wr + grid_step:
+            p1 = world_to_screen.map(QPointF(xi, wb - grid_step))
+            p2 = world_to_screen.map(QPointF(xi, wt + grid_step))
+            painter.drawLine(p1, p2)
+            xi += grid_step
+        yi = y0
+        while yi <= wt + grid_step:
+            p1 = world_to_screen.map(QPointF(wl - grid_step, yi))
+            p2 = world_to_screen.map(QPointF(wr + grid_step, yi))
+            painter.drawLine(p1, p2)
+            yi += grid_step
 
         # Draw Map
         if self.map_image and not self.map_image.isNull():

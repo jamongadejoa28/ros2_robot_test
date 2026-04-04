@@ -1,6 +1,7 @@
 #include "pinky_core/app/robot_app.h"
 
 #include <iostream>
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include "pinky_core/common/constants.h"
@@ -388,18 +389,41 @@ void RobotApp::LidarLoop() {
           step = rl_step_count_++;
         }
 
-        if (is_active && onnx_actor_) {
-          obs_builder_.SetGoal(goal.x, goal.y);
-          std::array<float, 28> obs = obs_builder_.Build(sectors, odom, step);
-          std::array<float, 2> action = onnx_actor_->Infer(obs);
-          CmdVel cmd = rl_controller_.Compute(
-              action,
-              static_cast<float>(odom.vx),
-              static_cast<float>(odom.vth));
-
-          {
+        if (is_active) {
+          if (onnx_actor_) {
+            obs_builder_.SetGoal(goal.x, goal.y);
+            std::array<float, 28> obs = obs_builder_.Build(sectors, odom, step);
+            std::array<float, 2> action = onnx_actor_->Infer(obs);
+            CmdVel cmd = rl_controller_.Compute(
+                action,
+                static_cast<float>(odom.vx),
+                static_cast<float>(odom.vth));
             std::lock_guard<std::mutex> lock(state_mutex_);
             target_cmd_vel_ = cmd;
+          } else {
+            // P-control fallback when ONNX model is unavailable
+            float dx = static_cast<float>(goal.x - odom.x);
+            float dy = static_cast<float>(goal.y - odom.y);
+            float dist = std::sqrt(dx * dx + dy * dy);
+
+            if (dist < 0.30f) {
+              std::lock_guard<std::mutex> lock(state_mutex_);
+              rl_navigation_active_ = false;
+              target_cmd_vel_ = {0.0f, 0.0f};
+            } else {
+              float goal_angle = std::atan2(dy, dx);
+              float angle_diff = goal_angle - static_cast<float>(odom.theta);
+              while (angle_diff >  static_cast<float>(M_PI)) angle_diff -= 2.0f * static_cast<float>(M_PI);
+              while (angle_diff < -static_cast<float>(M_PI)) angle_diff += 2.0f * static_cast<float>(M_PI);
+
+              float turn_scale = std::max(0.0f, 1.0f - std::abs(angle_diff) / static_cast<float>(M_PI));
+              CmdVel cmd{
+                std::clamp(0.4f * dist * turn_scale, 0.0f, kVMax),
+                std::clamp(1.8f * angle_diff, -kWMax, kWMax)
+              };
+              std::lock_guard<std::mutex> lock(state_mutex_);
+              target_cmd_vel_ = cmd;
+            }
           }
         }
       } else {

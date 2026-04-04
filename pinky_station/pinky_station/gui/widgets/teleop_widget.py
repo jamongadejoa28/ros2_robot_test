@@ -50,13 +50,10 @@ class TeleopWidget(QGroupBox):
         self.btn_right = QPushButton("D")
         self.btn_stop = QPushButton("STOP")
         
-        # Add basic style
         btn_style = "QPushButton { min-height: 40px; font-weight: bold; font-size: 16px; }"
-        self.btn_fwd.setStyleSheet(btn_style)
-        self.btn_bwd.setStyleSheet(btn_style)
-        self.btn_left.setStyleSheet(btn_style)
-        self.btn_right.setStyleSheet(btn_style)
-        self.btn_stop.setStyleSheet("QPushButton { min-height: 40px; font-weight: bold; font-size: 16px; background-color: #8b0000; color: white; }")
+        for btn in (self.btn_fwd, self.btn_bwd, self.btn_left, self.btn_right):
+            btn.setStyleSheet(btn_style)
+        self.btn_stop.setObjectName("btn_teleop_stop")
         
         grid_layout.addWidget(self.btn_fwd, 0, 1)
         grid_layout.addWidget(self.btn_left, 1, 0)
