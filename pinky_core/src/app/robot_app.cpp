@@ -3,12 +3,8 @@
 #include <iostream>
 #include <chrono>
 #include <cmath>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/wait.h>
 #include "pinky_core/common/constants.h"
 #include "pinky_core/core/emotion_renderer.h"
-#include "pinky_core/hal/ipc_camera.h"
 
 #ifdef BUILD_HAL
 #include "pinky_core/hal/dynamixel_motor.h"
@@ -17,6 +13,7 @@
 #include "pinky_core/hal/adc_sensor.h"
 #include "pinky_core/hal/ws2811_led.h"
 #include "pinky_core/hal/ili9341_lcd.h"
+#include "pinky_core/hal/rpicam_capture.h"
 #endif
 
 namespace pinky {
@@ -94,29 +91,13 @@ bool RobotApp::Init() {
     std::cerr << "OnnxActor load failed: " << e.what() << "\n";
   }
 
-  std::cout << "Starting Python camera server...\n";
-  camera_server_pid_ = fork();
-  if (camera_server_pid_ == 0) {
-    // Try uv first (--project .. points to pinky_core/pyproject.toml)
-    execlp("uv", "uv", "run", "--project", "..", "../src/hal/pinky_camera_server.py", nullptr);
-    // uv not found or failed — fall back to system python3
-    execlp("python3", "python3", "../src/hal/pinky_camera_server.py", nullptr);
-    std::cerr << "Failed to start camera server (uv and python3 both unavailable)\n";
-    exit(1);
-  } else if (camera_server_pid_ < 0) {
-
-    std::cerr << "Fork failed for camera server\n";
-    camera_server_pid_ = 0;
-  } else {
-    std::cout << "Camera server started with PID: " << camera_server_pid_ << "\n";
-  }
-
-  // Using IpcCamera to bypass Pi 5 ISP issues
-  camera_ = std::make_unique<IpcCamera>();
+#ifdef BUILD_HAL
+  camera_ = std::make_unique<RpicamCapture>();
   if (!camera_->Init()) {
-    std::cerr << "IpcCamera init failed (Ensure pinky_camera_server.py is running)\n";
-    // We don't necessarily reset camera_ here, it might reconnect later
+    std::cerr << "RpicamCapture init failed\n";
+    camera_.reset();
   }
+#endif
 
   // Hook network callbacks
   zmq_server_->SetCommandCallback([this](const proto::ControlCommand& cmd, proto::CommandAck& ack) {
@@ -161,14 +142,6 @@ void RobotApp::Stop() {
   if (lidar_thread_.joinable()) lidar_thread_.join();
   if (camera_thread_.joinable()) camera_thread_.join();
   if (lcd_thread_.joinable()) lcd_thread_.join();
-
-  if (camera_server_pid_ > 0) {
-    std::cout << "Stopping Python camera server (PID: " << camera_server_pid_ << ")...\n";
-    kill(camera_server_pid_, SIGINT);
-    int status;
-    waitpid(camera_server_pid_, &status, 0);
-    camera_server_pid_ = 0;
-  }
 }
 
 void RobotApp::OnCommand(const proto::ControlCommand& cmd, proto::CommandAck& ack) {

@@ -2,9 +2,9 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <vector>
-#include <sys/types.h>
 
 #include "pinky_core/hal/interfaces.h"
 #include "pinky_core/net/zmq_server.h"
@@ -119,8 +119,6 @@ class RobotApp {
   std::thread lidar_thread_;
   std::thread camera_thread_;
   std::thread lcd_thread_;
-
-  pid_t camera_server_pid_{0};
 };
 
 }  // namespace pinky

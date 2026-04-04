@@ -70,7 +70,6 @@ endif()
 set(CORE_SOURCES
   src/common/logger.cpp
   src/net/zmq_server.cpp
-  src/hal/ipc_camera.cpp
   src/core/diff_drive.cpp
   src/core/odometry.cpp
   src/core/sensor_fusion.cpp
@@ -122,13 +121,14 @@ endif()
 # ---------------------------------------------------------------------------
 if(BUILD_HAL)
   message(STATUS "Building HAL for ARM64")
-  add_library(pinky_hal STATIC 
+  add_library(pinky_hal STATIC
     src/hal/dynamixel_motor.cpp
     src/hal/sllidar_driver.cpp
     src/hal/bno055_imu.cpp
     src/hal/adc_sensor.cpp
     src/hal/ws2811_led.cpp
     src/hal/ili9341_lcd.cpp
+    src/hal/rpicam_capture.cpp
   )
   
   # Search for standalone pure C++ RPLIDAR SDK locally in pinky_devices
