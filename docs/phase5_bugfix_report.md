@@ -254,7 +254,92 @@ if (!cmd.robot_id().empty() && cmd.robot_id() != config_.robot_id) {
 
 ---
 
-## 6. 남은 작업 (계획서 기준 미구현 항목)
+## 6. 4차 수정 (2026-04-04 — 3차 테스트 후)
+
+### Bug 15: 카메라 미동작 — rpicam-vid argv off-by-one
+
+**증상:**
+```
+ERROR: *** Invalid time string provided ***
+RpicamCapture: rpicam-vid exited immediately (exit code 255)
+```
+
+**원인:**  
+`rpicam_capture.cpp`의 `argv_base[]` 배열에서 `kBaseArgc = 13`으로 설정했으나, 인덱스 13은 `"0"` (timeout 값)이지 빈 슬롯이 아님. `rotate_180=true`일 때 `argv[13]`이 `"--hflip"`으로 덮어써져서 최종 명령이 `--timeout --hflip --vflip`이 됨. rpicam-vid가 `--hflip`을 시간 값으로 파싱 시도 → 실패.
+
+**수정:**  
+- `kFirstPlaceholder = 14`로 수정
+- 이후 근본적으로 `char*[]` 고정 배열을 `std::vector<char*>`로 변경하여 인덱스 버그 재발 원천 차단
+
+---
+
+### Bug 16: 2D Pose Estimate 미동작 — sensor_fusion_ 미리셋
+
+**증상:**  
+`set_pose` 전송 후 로봇 위치가 맵에서 변하지 않음.
+
+**원인:**  
+`OnCommand`에서 `odom_calc_.Reset()`만 호출하고 `sensor_fusion_`은 기존 좌표를 유지. `current_odom_`은 `sensor_fusion_.GetState()`에서 파생되므로 포즈가 실제로 업데이트되지 않음.
+
+**수정:**
+```cpp
+odom_calc_.Reset(px, py, pt);
+sensor_fusion_.Reset(px, py, pt);
+current_odom_ = {px, py, pt, 0.0, 0.0};
+```
+
+---
+
+### Bug 17: 카메라 지연 — 파이프 버퍼 프레임 축적
+
+**증상:**  
+카메라가 이미 다른 방향을 비추고 있는데, GUI에 과거 장면이 순서대로 느리게 재생됨.
+
+**원인:**  
+rpicam-vid가 15fps로 파이프에 쓰고, CameraLoop가 10fps로 소비. `CaptureJpeg`가 FIFO 순서로 오래된 프레임부터 반환하여 지연이 계속 증가.
+
+**수정:**  
+`CaptureJpeg`를 전면 개편:
+1. 파이프에서 즉시 읽을 수 있는 데이터를 전부 drain (non-blocking poll)
+2. 역방향 스캔으로 마지막 EOI(FF D9) → 마지막 SOI(FF D8) 탐색
+3. 가장 최근 완성 프레임만 반환, 이전 프레임 모두 폐기
+
+---
+
+### Bug 18: 카메라 GUI 창 무한 확장
+
+**원인:**  
+`QLabel.setPixmap()` 호출 시 sizeHint가 pixmap 크기를 따라가면서 레이아웃이 매 프레임마다 조금씩 확장됨.
+
+**수정:**  
+`QLabel.setSizePolicy(Ignored, Ignored)` 설정 + `setMinimumSize(160, 120)` 고정.
+
+---
+
+### 개선 14: 카메라 화질 향상
+
+- rpicam-vid에 `--quality 85` 플래그 추가 (MJPEG 압축 품질)
+- GUI에서 `FastTransformation` → `SmoothTransformation` 스케일링 변경
+
+---
+
+### 개선 15: GUI Midnight Blue 테마 적용
+
+- Catppuccin Mocha → Midnight Blue 팔레트 전환
+- 3단계 배경 레이어: Base `#080d17` / Surface `#0f1826` / Card `#162032`
+- 패널 경계 `#1e3050` border로 명확히 구분
+- objectName 기반 QSS 적용 (인라인 스타일 제거)
+
+---
+
+### 개선 16: 자율주행 RL 디버그 로깅
+
+- `LidarLoop`에 50 step마다 `[RL]` 로그 출력 추가 (goal, pos, dist, action, cmd)
+- 로봇 터미널에서 RL inference 파이프라인 진단 가능
+
+---
+
+## 7. 남은 작업 (계획서 기준 미구현 항목)
 
 계획서(`bubbly-waddling-whistle.md`) 대비 아직 구현되지 않은 주요 항목:
 
