@@ -177,7 +177,16 @@ void RobotApp::OnCommand(const proto::ControlCommand& cmd, proto::CommandAck& ac
     ack.set_message("Nav canceled");
   } else if (cmd.has_set_pose()) {
     std::lock_guard<std::mutex> lock(state_mutex_);
-    odom_calc_.Reset(cmd.set_pose().x(), cmd.set_pose().y(), cmd.set_pose().theta());
+    double px = cmd.set_pose().x();
+    double py = cmd.set_pose().y();
+    double pt = cmd.set_pose().theta();
+    odom_calc_.Reset(px, py, pt);
+    sensor_fusion_.Reset(px, py, pt);
+    current_odom_.x = px;
+    current_odom_.y = py;
+    current_odom_.theta = pt;
+    current_odom_.vx = 0.0;
+    current_odom_.vth = 0.0;
     ack.set_message("Pose reset");
   } else {
     ack.set_success(false);
@@ -398,6 +407,19 @@ void RobotApp::LidarLoop() {
                 action,
                 static_cast<float>(odom.vx),
                 static_cast<float>(odom.vth));
+
+            if (step % 50 == 0) {
+              float dx = static_cast<float>(goal.x - odom.x);
+              float dy = static_cast<float>(goal.y - odom.y);
+              float dist = std::sqrt(dx * dx + dy * dy);
+              std::cout << "[RL] step=" << step
+                        << " goal=(" << goal.x << "," << goal.y << ")"
+                        << " pos=(" << odom.x << "," << odom.y << ")"
+                        << " dist=" << dist
+                        << " action=[" << action[0] << "," << action[1] << "]"
+                        << " cmd=(" << cmd.linear_x << "," << cmd.angular_z << ")\n";
+            }
+
             std::lock_guard<std::mutex> lock(state_mutex_);
             target_cmd_vel_ = cmd;
           } else {

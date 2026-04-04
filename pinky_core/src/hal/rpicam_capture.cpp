@@ -59,22 +59,22 @@ bool RpicamCapture::Init() {
     snprintf(fs, sizeof(fs), "%d", cfg_.fps);
 
     char* argv_base[] = {
-      const_cast<char*>("rpicam-vid"),
-      const_cast<char*>("--width"),     ws,
-      const_cast<char*>("--height"),    hs,
-      const_cast<char*>("--framerate"), fs,
-      const_cast<char*>("--codec"),     const_cast<char*>("mjpeg"),
-      const_cast<char*>("--output"),    const_cast<char*>("-"),
-      const_cast<char*>("--nopreview"),
-      const_cast<char*>("--timeout"),   const_cast<char*>("0"),
-      nullptr, nullptr, nullptr  // placeholders for hflip/vflip/sentinel
+      const_cast<char*>("rpicam-vid"),          // [0]
+      const_cast<char*>("--width"),     ws,     // [1],[2]
+      const_cast<char*>("--height"),    hs,     // [3],[4]
+      const_cast<char*>("--framerate"), fs,     // [5],[6]
+      const_cast<char*>("--codec"),     const_cast<char*>("mjpeg"),  // [7],[8]
+      const_cast<char*>("--output"),    const_cast<char*>("-"),      // [9],[10]
+      const_cast<char*>("--nopreview"),          // [11]
+      const_cast<char*>("--timeout"),   const_cast<char*>("0"),      // [12],[13]
+      nullptr, nullptr, nullptr  // [14],[15],[16] placeholders for hflip/vflip/sentinel
     };
-    constexpr int kBaseArgc = 13;
+    constexpr int kFirstPlaceholder = 14;
 
     if (cfg_.rotate_180) {
-      argv_base[kBaseArgc]     = const_cast<char*>("--hflip");
-      argv_base[kBaseArgc + 1] = const_cast<char*>("--vflip");
-      argv_base[kBaseArgc + 2] = nullptr;
+      argv_base[kFirstPlaceholder]     = const_cast<char*>("--hflip");
+      argv_base[kFirstPlaceholder + 1] = const_cast<char*>("--vflip");
+      argv_base[kFirstPlaceholder + 2] = nullptr;
     }
 
     execvp("rpicam-vid", argv_base);
